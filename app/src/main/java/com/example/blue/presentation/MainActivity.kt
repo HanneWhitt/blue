@@ -48,7 +48,7 @@ fun WearApp() {
 // Data classes
 data class HabitCompletion(
     val habitId: Int,
-    val dayIndex: Int, // 0-13 for 14 days
+    val dayIndex: Int, // 0-9 for 10 days
     val isCompleted: Boolean?  // null = no data, true = completed, false = not completed
 )
 
@@ -69,7 +69,7 @@ fun HabitTrackerDisplay() {
     val paleBlue = Color(0xFFBBDEFB)      // Pale blue for not completed
     val paleGrey = Color(0xFFE0E0E0)      // Pale grey for no data
 
-    // Sample data - 5 habits over 14 days
+    // Sample data - 5 habits over 10 days
     val habits = remember {
         listOf(
             Habit(0, "Exercise", darkBlue),
@@ -84,12 +84,12 @@ fun HabitTrackerDisplay() {
     val completions = remember {
         mutableListOf<HabitCompletion>().apply {
             for (habitId in 0..4) {
-                for (day in 0..13) {
+                for (day in 0..9) {  // Changed to 10 days (0-9)
                     val completion = when {
-                        // First 3 days: no data for all habits
-                        day < 3 -> null
-                        // Days 3-5: mixed pattern
-                        day in 3..5 -> when (habitId) {
+                        // First 2 days: no data for all habits
+                        day < 2 -> null
+                        // Days 2-4: mixed pattern
+                        day in 2..4 -> when (habitId) {
                             0 -> true  // Exercise: completed
                             1 -> false // Read: not completed
                             2 -> true  // Meditate: completed
@@ -97,8 +97,8 @@ fun HabitTrackerDisplay() {
                             4 -> null  // Sleep: no data
                             else -> null
                         }
-                        // Days 6-9: different pattern
-                        day in 6..9 -> when (habitId) {
+                        // Days 5-7: different pattern
+                        day in 5..7 -> when (habitId) {
                             0 -> false // Exercise: not completed
                             1 -> true  // Read: completed
                             2 -> false // Meditate: not completed
@@ -106,7 +106,7 @@ fun HabitTrackerDisplay() {
                             4 -> true  // Sleep: completed
                             else -> null
                         }
-                        // Days 10-13: another pattern
+                        // Days 8-9: another pattern
                         else -> when (habitId) {
                             0 -> true  // Exercise: completed
                             1 -> true  // Read: completed
@@ -154,9 +154,16 @@ fun DrawScope.drawHabitTracker(
     paleBlue: Color,
     paleGrey: Color
 ) {
-    val numDays = 14
+    val numDays = 10
     val numHabits = habits.size
-    val segmentAngle = 360f / numDays
+
+    // Arc configuration variables
+    val startingAngle = -90f  // Start at 12 o'clock (vertical, top of screen)
+    val gapAngle = 45f        // Gap size in degrees (adjustable)
+
+    val totalArcAngle = 360f - gapAngle  // Available degrees for the days
+    val segmentAngle = totalArcAngle / numDays  // Each day gets equal portion
+
     val availableRadius = maxRadius - innerMargin
     val habitLayerThickness = availableRadius / numHabits
 
@@ -167,7 +174,8 @@ fun DrawScope.drawHabitTracker(
 
         // Draw each day segment for this habit
         for (dayIndex in 0 until numDays) {
-            val startAngle = dayIndex * segmentAngle - 90f // Start from top
+            // Calculate angle for this day (going anticlockwise from starting position)
+            val dayStartAngle = startingAngle - (dayIndex * segmentAngle)
 
             // Find completion status for this habit/day
             val completion = completions.find {
@@ -183,8 +191,8 @@ fun DrawScope.drawHabitTracker(
             // Draw the arc segment
             drawArc(
                 color = segmentColor,
-                startAngle = startAngle,
-                sweepAngle = segmentAngle - 2f, // Small gap between segments
+                startAngle = dayStartAngle,
+                sweepAngle = -segmentAngle + 2f, // Negative for anticlockwise, small gap between segments
                 useCenter = false,
                 topLeft = Offset(
                     center.x - outerRadius,
