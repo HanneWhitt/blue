@@ -1,6 +1,7 @@
 // MainActivity.kt
 package com.example.blue.presentation
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,11 +16,14 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.*
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.math.*
 
 class MainActivity : ComponentActivity() {
@@ -58,6 +62,11 @@ data class Habit(
     val color: Color
 )
 
+data class HabitData(
+    val habits: List<Habit>,
+    val completions: List<HabitCompletion>
+)
+
 @Composable
 fun HabitTrackerDisplay() {
     // Spacing configuration variables
@@ -69,57 +78,9 @@ fun HabitTrackerDisplay() {
     val paleBlue = Color(0xFFBBDEFB)      // Pale blue for not completed
     val paleGrey = Color(0xFFE0E0E0)      // Pale grey for no data
 
-    // Sample data - 5 habits over 10 days
-    val habits = remember {
-        listOf(
-            Habit(0, "Exercise", darkBlue),
-            Habit(1, "Read", darkBlue),
-            Habit(2, "Meditate", darkBlue),
-            Habit(3, "Water", darkBlue),
-            Habit(4, "Sleep", darkBlue)
-        )
-    }
-
-    // Sample completion data with good variety to show all three states
-    val completions = remember {
-        mutableListOf<HabitCompletion>().apply {
-            for (habitId in 0..4) {
-                for (day in 0..9) {  // Changed to 10 days (0-9)
-                    val completion = when {
-                        // First 2 days: no data for all habits
-                        day < 2 -> null
-                        // Days 2-4: mixed pattern
-                        day in 2..4 -> when (habitId) {
-                            0 -> true  // Exercise: completed
-                            1 -> false // Read: not completed
-                            2 -> true  // Meditate: completed
-                            3 -> false // Water: not completed
-                            4 -> null  // Sleep: no data
-                            else -> null
-                        }
-                        // Days 5-7: different pattern
-                        day in 5..7 -> when (habitId) {
-                            0 -> false // Exercise: not completed
-                            1 -> true  // Read: completed
-                            2 -> false // Meditate: not completed
-                            3 -> true  // Water: completed
-                            4 -> true  // Sleep: completed
-                            else -> null
-                        }
-                        // Days 8-9: another pattern
-                        else -> when (habitId) {
-                            0 -> true  // Exercise: completed
-                            1 -> true  // Read: completed
-                            2 -> null  // Meditate: no data
-                            3 -> true  // Water: completed
-                            4 -> false // Sleep: not completed
-                            else -> null
-                        }
-                    }
-                    add(HabitCompletion(habitId, day, completion))
-                }
-            }
-        }
+    val context = LocalContext.current
+    val habitData = remember {
+        loadHabitDataFromAssets(context)
     }
 
     val density = LocalDensity.current
@@ -135,12 +96,58 @@ fun HabitTrackerDisplay() {
             center = center,
             maxRadius = maxRadius,
             innerMargin = innerMarginPx,
-            habits = habits,
-            completions = completions,
+            habits = habitData.habits,
+            completions = habitData.completions,
             darkBlue = darkBlue,
             paleBlue = paleBlue,
             paleGrey = paleGrey
         )
+    }
+}
+
+fun loadHabitDataFromAssets(context: Context): HabitData {
+    return try {
+        val inputStream = context.assets.open("sample_habit_data.json")
+        val jsonString = inputStream.bufferedReader().use { it.readText() }
+        val jsonObject = JSONObject(jsonString)
+
+        val habitsArray = jsonObject.getJSONArray("habits")
+        val habits = mutableListOf<Habit>()
+        for (i in 0 until habitsArray.length()) {
+            val habitJson = habitsArray.getJSONObject(i)
+            val colorHex = habitJson.getString("colorHex")
+            val color = Color(android.graphics.Color.parseColor(colorHex))
+            habits.add(
+                Habit(
+                    id = habitJson.getInt("id"),
+                    name = habitJson.getString("name"),
+                    color = color
+                )
+            )
+        }
+
+        val completionsArray = jsonObject.getJSONArray("completions")
+        val completions = mutableListOf<HabitCompletion>()
+        for (i in 0 until completionsArray.length()) {
+            val completionJson = completionsArray.getJSONObject(i)
+            val isCompleted = if (completionJson.isNull("isCompleted")) {
+                null
+            } else {
+                completionJson.getBoolean("isCompleted")
+            }
+            completions.add(
+                HabitCompletion(
+                    habitId = completionJson.getInt("habitId"),
+                    dayIndex = completionJson.getInt("dayIndex"),
+                    isCompleted = isCompleted
+                )
+            )
+        }
+
+        HabitData(habits, completions)
+    } catch (e: Exception) {
+        // Fallback to empty data if file loading fails
+        HabitData(emptyList(), emptyList())
     }
 }
 

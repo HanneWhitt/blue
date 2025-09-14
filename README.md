@@ -2,6 +2,8 @@
 
 A Wear OS habit tracking application built with Jetpack Compose for Wear OS devices.
 
+A unique circular display shows days as sectors, and different habits as different concentric layers, enabling you to see at a glance how you are progress across all the different habits you are working to improve.
+
 ## Features
 
 - Habit tracking with visual progress indicators
@@ -9,36 +11,3 @@ A Wear OS habit tracking application built with Jetpack Compose for Wear OS devi
 - Built with Jetpack Compose for modern UI
 - Standalone app (no phone companion required)
 
-## Technical Details
-
-- **Target Platform**: Wear OS (API 30+)
-- **Language**: Kotlin
-- **UI Framework**: Jetpack Compose for Wear OS
-- **Min SDK**: 30
-- **Target SDK**: 35
-- **Build System**: Gradle with Kotlin DSL
-
-## Project Structure
-
-- `app/src/main/java/com/example/blue/presentation/` - Main UI components and activities
-- `app/src/main/java/com/example/blue/presentation/theme/` - App theming
-
-## Building
-
-This project uses Gradle. To build:
-
-```bash
-./gradlew build
-```
-
-To install on a connected Wear OS device:
-
-```bash
-./gradlew installDebug
-```
-
-## Requirements
-
-- Android Studio with Wear OS support
-- Wear OS device or emulator (API 30+)
-- JDK 11+

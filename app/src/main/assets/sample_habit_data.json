@@ -1,0 +1,85 @@
+{
+  "habits": [
+    {
+      "id": 0,
+      "name": "Exercise",
+      "colorHex": "#1565C0"
+    },
+    {
+      "id": 1,
+      "name": "Read",
+      "colorHex": "#1565C0"
+    },
+    {
+      "id": 2,
+      "name": "Meditate",
+      "colorHex": "#1565C0"
+    },
+    {
+      "id": 3,
+      "name": "Water",
+      "colorHex": "#1565C0"
+    },
+    {
+      "id": 4,
+      "name": "Sleep",
+      "colorHex": "#1565C0"
+    }
+  ],
+  "completions": [
+    {"habitId": 0, "dayIndex": 0, "isCompleted": null},
+    {"habitId": 0, "dayIndex": 1, "isCompleted": null},
+    {"habitId": 0, "dayIndex": 2, "isCompleted": true},
+    {"habitId": 0, "dayIndex": 3, "isCompleted": true},
+    {"habitId": 0, "dayIndex": 4, "isCompleted": true},
+    {"habitId": 0, "dayIndex": 5, "isCompleted": false},
+    {"habitId": 0, "dayIndex": 6, "isCompleted": false},
+    {"habitId": 0, "dayIndex": 7, "isCompleted": false},
+    {"habitId": 0, "dayIndex": 8, "isCompleted": true},
+    {"habitId": 0, "dayIndex": 9, "isCompleted": true},
+
+    {"habitId": 1, "dayIndex": 0, "isCompleted": null},
+    {"habitId": 1, "dayIndex": 1, "isCompleted": null},
+    {"habitId": 1, "dayIndex": 2, "isCompleted": false},
+    {"habitId": 1, "dayIndex": 3, "isCompleted": false},
+    {"habitId": 1, "dayIndex": 4, "isCompleted": false},
+    {"habitId": 1, "dayIndex": 5, "isCompleted": true},
+    {"habitId": 1, "dayIndex": 6, "isCompleted": true},
+    {"habitId": 1, "dayIndex": 7, "isCompleted": true},
+    {"habitId": 1, "dayIndex": 8, "isCompleted": true},
+    {"habitId": 1, "dayIndex": 9, "isCompleted": true},
+
+    {"habitId": 2, "dayIndex": 0, "isCompleted": null},
+    {"habitId": 2, "dayIndex": 1, "isCompleted": null},
+    {"habitId": 2, "dayIndex": 2, "isCompleted": true},
+    {"habitId": 2, "dayIndex": 3, "isCompleted": true},
+    {"habitId": 2, "dayIndex": 4, "isCompleted": true},
+    {"habitId": 2, "dayIndex": 5, "isCompleted": false},
+    {"habitId": 2, "dayIndex": 6, "isCompleted": false},
+    {"habitId": 2, "dayIndex": 7, "isCompleted": false},
+    {"habitId": 2, "dayIndex": 8, "isCompleted": null},
+    {"habitId": 2, "dayIndex": 9, "isCompleted": null},
+
+    {"habitId": 3, "dayIndex": 0, "isCompleted": null},
+    {"habitId": 3, "dayIndex": 1, "isCompleted": null},
+    {"habitId": 3, "dayIndex": 2, "isCompleted": false},
+    {"habitId": 3, "dayIndex": 3, "isCompleted": false},
+    {"habitId": 3, "dayIndex": 4, "isCompleted": false},
+    {"habitId": 3, "dayIndex": 5, "isCompleted": true},
+    {"habitId": 3, "dayIndex": 6, "isCompleted": true},
+    {"habitId": 3, "dayIndex": 7, "isCompleted": true},
+    {"habitId": 3, "dayIndex": 8, "isCompleted": true},
+    {"habitId": 3, "dayIndex": 9, "isCompleted": true},
+
+    {"habitId": 4, "dayIndex": 0, "isCompleted": null},
+    {"habitId": 4, "dayIndex": 1, "isCompleted": null},
+    {"habitId": 4, "dayIndex": 2, "isCompleted": null},
+    {"habitId": 4, "dayIndex": 3, "isCompleted": null},
+    {"habitId": 4, "dayIndex": 4, "isCompleted": null},
+    {"habitId": 4, "dayIndex": 5, "isCompleted": true},
+    {"habitId": 4, "dayIndex": 6, "isCompleted": true},
+    {"habitId": 4, "dayIndex": 7, "isCompleted": true},
+    {"habitId": 4, "dayIndex": 8, "isCompleted": false},
+    {"habitId": 4, "dayIndex": 9, "isCompleted": false}
+  ]
+}
