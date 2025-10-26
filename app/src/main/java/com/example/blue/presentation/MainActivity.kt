@@ -7,10 +7,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -98,14 +103,55 @@ fun HabitTrackerDisplay() {
 
     val density = LocalDensity.current
     val screenSize = 200.dp // Approximate watch screen size
+    val focusRequester = remember { FocusRequester() }
+
+    val numHabits = initialHabitData.habits.size
+    val numDays = 10
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
 
     Canvas(
         modifier = Modifier
             .size(screenSize)
+            .onRotaryScrollEvent { event ->
+
+                println("SCROLL EVENT DATECED")
+                // Positive delta means scroll up
+                if (event.verticalScrollPixels > 0) {
+                    // Scroll up: increase habit index
+                    if (selectedHabitIndex < numHabits - 1) {
+                        selectedHabitIndex++
+                    } else {
+                        // Wrapped to next day
+                        selectedHabitIndex = 0
+                        if (selectedDayIndex < numDays - 1) {
+                            selectedDayIndex++
+                        }
+                    }
+                } else if (event.verticalScrollPixels < 0) {
+                    // Scroll down: decrease habit index
+                    if (selectedHabitIndex > 0) {
+                        selectedHabitIndex--
+                    } else {
+                        // Wrapped to previous day
+                        selectedHabitIndex = numHabits - 1
+                        if (selectedDayIndex > 0) {
+                            selectedDayIndex--
+                        }
+                    }
+                }
+                true
+            }
+            .focusRequester(focusRequester)
+            .focusable()
             .pointerInput(Unit) {
                 detectTapGestures(
                     onLongPress = {
                         // Find the selected habit's ID
+                        println("LONGPRESS EVENT DATECED")
+
                         val selectedHabit = initialHabitData.habits.getOrNull(selectedHabitIndex)
                         if (selectedHabit != null) {
                             // Find existing completion
