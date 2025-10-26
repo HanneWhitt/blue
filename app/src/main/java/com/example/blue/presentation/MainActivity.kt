@@ -97,7 +97,7 @@ fun HabitTrackerDisplay() {
 
     val context = LocalContext.current
     val initialHabitData = remember {
-        loadHabitDataFromAssets(context)
+        loadHabitData(context)
     }
 
     // Mutable completions state
@@ -129,7 +129,6 @@ fun HabitTrackerDisplay() {
         modifier = Modifier
             .size(screenSize)
             .onRotaryScrollEvent { event ->
-                println("SCROLL EVENT DETECTED")
 
                 // Accumulate scroll delta
                 scrollAccumulator += event.verticalScrollPixels
@@ -168,7 +167,6 @@ fun HabitTrackerDisplay() {
                 detectTapGestures(
                     onLongPress = {
                         // Find the selected habit's ID
-                        println("LONGPRESS EVENT DATECED")
 
                         val selectedHabit = initialHabitData.habits.getOrNull(selectedHabitIndex)
                         if (selectedHabit != null) {
@@ -224,58 +222,74 @@ fun HabitTrackerDisplay() {
     }
 }
 
-fun loadHabitDataFromAssets(context: Context): HabitData {
+fun loadHabitData(context: Context): HabitData {
+    val savedDataFile = "saved_habit_data.json"
+    val initialDataFile = "initial_habit_data.json"
+
     return try {
-        val habit_data_file = "sample_habit_data.json"
-        val output_data_file = "sample_output_habit_data.json"
-
-        val inputStream = context.assets.open(habit_data_file)
-        val jsonString = inputStream.bufferedReader().use { it.readText() }
-        val jsonObject = JSONObject(jsonString)
-
-        val habitsArray = jsonObject.getJSONArray("habits")
-        val habits = mutableListOf<Habit>()
-        for (i in 0 until habitsArray.length()) {
-            val habitJson = habitsArray.getJSONObject(i)
-            val colorHex = habitJson.getString("colorHex")
-            val color = Color(android.graphics.Color.parseColor(colorHex))
-            habits.add(
-                Habit(
-                    id = habitJson.getInt("id"),
-                    name = habitJson.getString("name"),
-                    color = color
-                )
-            )
+        // First, try to load from internal storage
+        val file = context.getFileStreamPath(savedDataFile)
+        if (file.exists()) {
+            println("Loading data from internal storage: $savedDataFile")
+            val jsonString = context.openFileInput(savedDataFile).bufferedReader().use { it.readText() }
+            parseHabitDataJson(jsonString)
+        } else {
+            // If saved file doesn't exist, load from assets
+            println("Saved data not found, loading from assets: $initialDataFile")
+            val inputStream = context.assets.open(initialDataFile)
+            val jsonString = inputStream.bufferedReader().use { it.readText() }
+            parseHabitDataJson(jsonString)
         }
-
-        val completionsArray = jsonObject.getJSONArray("completions")
-        val completions = mutableListOf<HabitCompletion>()
-        for (i in 0 until completionsArray.length()) {
-            val completionJson = completionsArray.getJSONObject(i)
-            val isCompleted = if (completionJson.isNull("isCompleted")) {
-                null
-            } else {
-                completionJson.getBoolean("isCompleted")
-            }
-            completions.add(
-                HabitCompletion(
-                    habitId = completionJson.getInt("habitId"),
-                    dayIndex = completionJson.getInt("dayIndex"),
-                    isCompleted = isCompleted
-                )
-            )
-        }
-
-        HabitData(habits, completions)
     } catch (e: Exception) {
-        // Fallback to empty data if file loading fails
+        println("Error loading habit data: ${e.message}")
+        e.printStackTrace()
+        // Fallback to empty data if both loading attempts fail
         HabitData(emptyList(), emptyList())
     }
 }
 
+fun parseHabitDataJson(jsonString: String): HabitData {
+    val jsonObject = JSONObject(jsonString)
+
+    val habitsArray = jsonObject.getJSONArray("habits")
+    val habits = mutableListOf<Habit>()
+    for (i in 0 until habitsArray.length()) {
+        val habitJson = habitsArray.getJSONObject(i)
+        val colorHex = habitJson.getString("colorHex")
+        val color = Color(android.graphics.Color.parseColor(colorHex))
+        habits.add(
+            Habit(
+                id = habitJson.getInt("id"),
+                name = habitJson.getString("name"),
+                color = color
+            )
+        )
+    }
+
+    val completionsArray = jsonObject.getJSONArray("completions")
+    val completions = mutableListOf<HabitCompletion>()
+    for (i in 0 until completionsArray.length()) {
+        val completionJson = completionsArray.getJSONObject(i)
+        val isCompleted = if (completionJson.isNull("isCompleted")) {
+            null
+        } else {
+            completionJson.getBoolean("isCompleted")
+        }
+        completions.add(
+            HabitCompletion(
+                habitId = completionJson.getInt("habitId"),
+                dayIndex = completionJson.getInt("dayIndex"),
+                isCompleted = isCompleted
+            )
+        )
+    }
+
+    return HabitData(habits, completions)
+}
+
 fun saveHabitDataToFile(context: Context, habitData: HabitData) {
     try {
-        val output_data_file = "sample_output_habit_data.json"
+        val output_data_file = "saved_habit_data.json"
 
         // Create JSON object
         val jsonObject = JSONObject()
@@ -286,7 +300,7 @@ fun saveHabitDataToFile(context: Context, habitData: HabitData) {
             val habitJson = JSONObject()
             habitJson.put("id", habit.id)
             habitJson.put("name", habit.name)
-            habitJson.put("colorHex", String.format("#%08X", habit.color.value.toLong()))
+            habitJson.put("colorHex", "#1565C0")
             habitsArray.put(habitJson)
         }
         jsonObject.put("habits", habitsArray)
