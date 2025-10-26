@@ -79,6 +79,8 @@ fun HabitTrackerDisplay() {
     // Selection state
     var selectedDayIndex by remember { mutableStateOf(0) }
     var selectedHabitIndex by remember { mutableStateOf(0) }
+    var scrollAccumulator by remember { mutableStateOf(0f) }
+    val scrollThreshold = 25f  // Adjust this value to control sensitivity
 
     // Spacing configuration variables
     val outerMarginPx = 20f      // Distance from screen edge to outer habit layer
@@ -116,10 +118,13 @@ fun HabitTrackerDisplay() {
         modifier = Modifier
             .size(screenSize)
             .onRotaryScrollEvent { event ->
+                println("SCROLL EVENT DETECTED")
 
-                println("SCROLL EVENT DATECED")
-                // Positive delta means scroll up
-                if (event.verticalScrollPixels > 0) {
+                // Accumulate scroll delta
+                scrollAccumulator += event.verticalScrollPixels
+
+                // Check if we've accumulated enough to trigger a selection change
+                if (scrollAccumulator >= scrollThreshold) {
                     // Scroll up: increase habit index
                     if (selectedHabitIndex < numHabits - 1) {
                         selectedHabitIndex++
@@ -130,7 +135,8 @@ fun HabitTrackerDisplay() {
                             selectedDayIndex++
                         }
                     }
-                } else if (event.verticalScrollPixels < 0) {
+                    scrollAccumulator = 0f
+                } else if (scrollAccumulator <= -scrollThreshold) {
                     // Scroll down: decrease habit index
                     if (selectedHabitIndex > 0) {
                         selectedHabitIndex--
@@ -141,6 +147,7 @@ fun HabitTrackerDisplay() {
                             selectedDayIndex--
                         }
                     }
+                    scrollAccumulator = 0f
                 }
                 true
             }
