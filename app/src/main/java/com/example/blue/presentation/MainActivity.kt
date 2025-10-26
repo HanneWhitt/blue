@@ -114,6 +114,17 @@ fun HabitTrackerDisplay() {
         focusRequester.requestFocus()
     }
 
+    // Save data whenever completions change
+    LaunchedEffect(completions) {
+        saveHabitDataToFile(
+            context,
+            HabitData(
+                habits = initialHabitData.habits,
+                completions = completions
+            )
+        )
+    }
+
     Canvas(
         modifier = Modifier
             .size(screenSize)
@@ -215,7 +226,10 @@ fun HabitTrackerDisplay() {
 
 fun loadHabitDataFromAssets(context: Context): HabitData {
     return try {
-        val inputStream = context.assets.open("sample_habit_data.json")
+        val habit_data_file = "sample_habit_data.json"
+        val output_data_file = "sample_output_habit_data.json"
+
+        val inputStream = context.assets.open(habit_data_file)
         val jsonString = inputStream.bufferedReader().use { it.readText() }
         val jsonObject = JSONObject(jsonString)
 
@@ -256,6 +270,51 @@ fun loadHabitDataFromAssets(context: Context): HabitData {
     } catch (e: Exception) {
         // Fallback to empty data if file loading fails
         HabitData(emptyList(), emptyList())
+    }
+}
+
+fun saveHabitDataToFile(context: Context, habitData: HabitData) {
+    try {
+        val output_data_file = "sample_output_habit_data.json"
+
+        // Create JSON object
+        val jsonObject = JSONObject()
+
+        // Add habits array
+        val habitsArray = JSONArray()
+        habitData.habits.forEach { habit ->
+            val habitJson = JSONObject()
+            habitJson.put("id", habit.id)
+            habitJson.put("name", habit.name)
+            habitJson.put("colorHex", String.format("#%08X", habit.color.value.toLong()))
+            habitsArray.put(habitJson)
+        }
+        jsonObject.put("habits", habitsArray)
+
+        // Add completions array
+        val completionsArray = JSONArray()
+        habitData.completions.forEach { completion ->
+            val completionJson = JSONObject()
+            completionJson.put("habitId", completion.habitId)
+            completionJson.put("dayIndex", completion.dayIndex)
+            if (completion.isCompleted != null) {
+                completionJson.put("isCompleted", completion.isCompleted)
+            } else {
+                completionJson.put("isCompleted", JSONObject.NULL)
+            }
+            completionsArray.put(completionJson)
+        }
+        jsonObject.put("completions", completionsArray)
+
+        // Write to internal storage
+        context.openFileOutput(output_data_file, Context.MODE_PRIVATE).use { outputStream ->
+            outputStream.write(jsonObject.toString(2).toByteArray())
+        }
+
+        println("Data saved successfully to $output_data_file")
+    } catch (e: Exception) {
+        println("Error saving data: ${e.message}")
+        e.printStackTrace()
     }
 }
 
