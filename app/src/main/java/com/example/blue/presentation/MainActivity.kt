@@ -7,8 +7,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -69,6 +71,10 @@ data class HabitData(
 
 @Composable
 fun HabitTrackerDisplay() {
+    // Selection state
+    var selectedDayIndex by remember { mutableStateOf(0) }
+    var selectedHabitIndex by remember { mutableStateOf(0) }
+
     // Spacing configuration variables
     val outerMarginPx = 20f      // Distance from screen edge to outer habit layer
     val innerMarginPx = 40f      // Distance from screen center to inner habit layer
@@ -78,16 +84,61 @@ fun HabitTrackerDisplay() {
     val paleBlue = Color(0xFFBBDEFB)      // Pale blue for not completed
     val paleGrey = Color(0xFFE0E0E0)      // Pale grey for no data
 
+    // Selection colors
+    val lightGreen = Color(0xFF81C784)    // Light green for selected (no data or not completed)
+    val darkGreen = Color(0xFF2E7D32)     // Dark green for selected (completed)
+
     val context = LocalContext.current
-    val habitData = remember {
+    val initialHabitData = remember {
         loadHabitDataFromAssets(context)
     }
+
+    // Mutable completions state
+    var completions by remember { mutableStateOf(initialHabitData.completions) }
 
     val density = LocalDensity.current
     val screenSize = 200.dp // Approximate watch screen size
 
     Canvas(
-        modifier = Modifier.size(screenSize)
+        modifier = Modifier
+            .size(screenSize)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = {
+                        // Find the selected habit's ID
+                        val selectedHabit = initialHabitData.habits.getOrNull(selectedHabitIndex)
+                        if (selectedHabit != null) {
+                            // Find existing completion
+                            val existingCompletion = completions.find {
+                                it.habitId == selectedHabit.id && it.dayIndex == selectedDayIndex
+                            }
+
+                            // Toggle completion status
+                            val newCompletions = completions.toMutableList()
+                            if (existingCompletion != null) {
+                                newCompletions.remove(existingCompletion)
+                                val newStatus = when (existingCompletion.isCompleted) {
+                                    true -> false    // Completed -> Not completed
+                                    else -> true     // No data or not completed -> Completed
+                                }
+                                newCompletions.add(
+                                    existingCompletion.copy(isCompleted = newStatus)
+                                )
+                            } else {
+                                // No existing entry, create new one as completed
+                                newCompletions.add(
+                                    HabitCompletion(
+                                        habitId = selectedHabit.id,
+                                        dayIndex = selectedDayIndex,
+                                        isCompleted = true
+                                    )
+                                )
+                            }
+                            completions = newCompletions
+                        }
+                    }
+                )
+            }
     ) {
         val center = Offset(size.width / 2f, size.height / 2f)
         val maxRadius = size.width / 2f - outerMarginPx
@@ -96,11 +147,15 @@ fun HabitTrackerDisplay() {
             center = center,
             maxRadius = maxRadius,
             innerMargin = innerMarginPx,
-            habits = habitData.habits,
-            completions = habitData.completions,
+            habits = initialHabitData.habits,
+            completions = completions,
             darkBlue = darkBlue,
             paleBlue = paleBlue,
-            paleGrey = paleGrey
+            paleGrey = paleGrey,
+            lightGreen = lightGreen,
+            darkGreen = darkGreen,
+            selectedDayIndex = selectedDayIndex,
+            selectedHabitIndex = selectedHabitIndex
         )
     }
 }
@@ -159,7 +214,11 @@ fun DrawScope.drawHabitTracker(
     completions: List<HabitCompletion>,
     darkBlue: Color,
     paleBlue: Color,
-    paleGrey: Color
+    paleGrey: Color,
+    lightGreen: Color,
+    darkGreen: Color,
+    selectedDayIndex: Int,
+    selectedHabitIndex: Int
 ) {
     val numDays = 10
     val numHabits = habits.size
@@ -189,10 +248,22 @@ fun DrawScope.drawHabitTracker(
                 it.habitId == habit.id && it.dayIndex == dayIndex
             }
 
-            val segmentColor = when (completion?.isCompleted) {
-                null -> paleGrey      // No data - pale grey
-                true -> darkBlue      // Completed - dark blue
-                false -> paleBlue     // Not completed - pale blue
+            // Check if this is the selected segment
+            val isSelected = (habitIndex == selectedHabitIndex && dayIndex == selectedDayIndex)
+
+            val segmentColor = if (isSelected) {
+                // Selected segment uses green colors
+                when (completion?.isCompleted) {
+                    true -> darkGreen     // Completed - dark green
+                    else -> lightGreen    // No data or not completed - light green
+                }
+            } else {
+                // Non-selected segments use original blue/grey colors
+                when (completion?.isCompleted) {
+                    null -> paleGrey      // No data - pale grey
+                    true -> darkBlue      // Completed - dark blue
+                    false -> paleBlue     // Not completed - pale blue
+                }
             }
 
             // Draw the arc segment
