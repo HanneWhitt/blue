@@ -233,9 +233,10 @@ fun DrawScope.drawHabitTracker(
     val availableRadius = maxRadius - innerMargin
     val habitLayerThickness = availableRadius / numHabits
 
-    // Draw each habit layer (from outside to inside)
+    // Draw each habit layer (habit 0 is innermost, highest index is outermost)
     habits.forEachIndexed { habitIndex, habit ->
-        val outerRadius = maxRadius - (habitIndex * habitLayerThickness)
+        val reversedIndex = numHabits - 1 - habitIndex
+        val outerRadius = maxRadius - (reversedIndex * habitLayerThickness)
         val innerRadius = outerRadius - habitLayerThickness * 0.8f // Leave gap between layers
 
         // Draw each day segment for this habit
