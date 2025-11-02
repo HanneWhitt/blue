@@ -1,91 +1,78 @@
 {
-  "habits": [
-    {
-      "id": 0,
-      "name": "Exercise",
+  "habits": {
+    "0": {
+      "name": "Up by 7:05",
+      "abbreviation": "UP7",
+      "type": "Binary",
       "colorHex": "#1565C0"
     },
-    {
-      "id": 1,
-      "name": "Read",
+    "1": {
+      "name": "Leave work 18:30",
+      "abbreviation": "LW6.5",
+      "type": "Binary",
       "colorHex": "#1565C0"
     },
-    {
-      "id": 2,
-      "name": "Meditate",
+    "2": {
+      "name": "Down by 10:05",
+      "abbreviation": "DB10",
+      "type": "Binary",
       "colorHex": "#1565C0"
     },
-    {
-      "id": 3,
-      "name": "Water",
-      "colorHex": "#1565C0"
-    },
-    {
-      "id": 4,
-      "name": "Sleep",
+    "3": {
+      "name": "NP",
+      "abbreviation": "NP",
+      "type": "Binary",
       "colorHex": "#1565C0"
     }
-  ],
+  },
   "completions": {
     "0": {
       "2025-11-02": {"iscompleted": null},
       "2025-11-01": {"iscompleted": null},
-      "2025-10-31": {"iscompleted": true},
-      "2025-10-30": {"iscompleted": true},
-      "2025-10-29": {"iscompleted": true},
-      "2025-10-28": {"iscompleted": false},
-      "2025-10-27": {"iscompleted": false},
-      "2025-10-26": {"iscompleted": false},
-      "2025-10-25": {"iscompleted": true},
-      "2025-10-24": {"iscompleted": true}
+      "2025-10-31": {"iscompleted": null},
+      "2025-10-30": {"iscompleted": null},
+      "2025-10-29": {"iscompleted": null},
+      "2025-10-28": {"iscompleted": null},
+      "2025-10-27": {"iscompleted": null},
+      "2025-10-26": {"iscompleted": null},
+      "2025-10-25": {"iscompleted": null},
+      "2025-10-24": {"iscompleted": null}
     },
     "1": {
       "2025-11-02": {"iscompleted": null},
       "2025-11-01": {"iscompleted": null},
-      "2025-10-31": {"iscompleted": false},
-      "2025-10-30": {"iscompleted": false},
-      "2025-10-29": {"iscompleted": false},
-      "2025-10-28": {"iscompleted": true},
-      "2025-10-27": {"iscompleted": true},
-      "2025-10-26": {"iscompleted": true},
-      "2025-10-25": {"iscompleted": true},
-      "2025-10-24": {"iscompleted": true}
+      "2025-10-31": {"iscompleted": null},
+      "2025-10-30": {"iscompleted": null},
+      "2025-10-29": {"iscompleted": null},
+      "2025-10-28": {"iscompleted": null},
+      "2025-10-27": {"iscompleted": null},
+      "2025-10-26": {"iscompleted": null},
+      "2025-10-25": {"iscompleted": null},
+      "2025-10-24": {"iscompleted": null}
     },
     "2": {
       "2025-11-02": {"iscompleted": null},
       "2025-11-01": {"iscompleted": null},
-      "2025-10-31": {"iscompleted": true},
-      "2025-10-30": {"iscompleted": true},
-      "2025-10-29": {"iscompleted": true},
-      "2025-10-28": {"iscompleted": false},
-      "2025-10-27": {"iscompleted": false},
-      "2025-10-26": {"iscompleted": false},
+      "2025-10-31": {"iscompleted": null},
+      "2025-10-30": {"iscompleted": null},
+      "2025-10-29": {"iscompleted": null},
+      "2025-10-28": {"iscompleted": null},
+      "2025-10-27": {"iscompleted": null},
+      "2025-10-26": {"iscompleted": null},
       "2025-10-25": {"iscompleted": null},
       "2025-10-24": {"iscompleted": null}
     },
     "3": {
       "2025-11-02": {"iscompleted": null},
       "2025-11-01": {"iscompleted": null},
-      "2025-10-31": {"iscompleted": false},
-      "2025-10-30": {"iscompleted": false},
-      "2025-10-29": {"iscompleted": false},
-      "2025-10-28": {"iscompleted": true},
-      "2025-10-27": {"iscompleted": true},
-      "2025-10-26": {"iscompleted": true},
-      "2025-10-25": {"iscompleted": true},
-      "2025-10-24": {"iscompleted": true}
-    },
-    "4": {
-      "2025-11-02": {"iscompleted": null},
-      "2025-11-01": {"iscompleted": null},
       "2025-10-31": {"iscompleted": null},
       "2025-10-30": {"iscompleted": null},
       "2025-10-29": {"iscompleted": null},
-      "2025-10-28": {"iscompleted": true},
-      "2025-10-27": {"iscompleted": true},
-      "2025-10-26": {"iscompleted": true},
-      "2025-10-25": {"iscompleted": false},
-      "2025-10-24": {"iscompleted": false}
+      "2025-10-28": {"iscompleted": null},
+      "2025-10-27": {"iscompleted": null},
+      "2025-10-26": {"iscompleted": null},
+      "2025-10-25": {"iscompleted": null},
+      "2025-10-24": {"iscompleted": null}
     }
   }
 }

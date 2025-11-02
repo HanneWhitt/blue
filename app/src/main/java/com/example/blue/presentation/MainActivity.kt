@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -35,6 +36,8 @@ import androidx.wear.compose.material.*
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
 import kotlin.math.*
 
 class MainActivity : ComponentActivity() {
@@ -67,11 +70,18 @@ data class HabitCompletion(
     val isCompleted: Boolean?  // null = no data, true = completed, false = not completed
 )
 
-data class Habit(
-    val id: Int,
-    val name: String,
-    val color: Color
-)
+sealed class Habit {
+    abstract val id: Int
+    abstract val name: String
+    abstract val abbreviation: String
+
+    data class BinaryHabit(
+        override val id: Int,
+        override val name: String,
+        override val abbreviation: String,
+        val color: Color
+    ) : Habit()
+}
 
 data class HabitData(
     val habits: List<Habit>,
@@ -88,6 +98,13 @@ fun HabitTrackerDisplay() {
     var selectedHabitIndex by remember { mutableStateOf(0) }
     var scrollAccumulator by remember { mutableStateOf(0f) }
     val scrollThreshold = 25f  // Adjust this value to control sensitivity
+
+    // Derived date information for selected day
+    val selectedDate by remember { derivedStateOf { currentDate.minusDays(selectedDayIndex.toLong()) } }
+    val selectedDayOfMonth by remember { derivedStateOf { selectedDate.dayOfMonth.toString() } }
+    val selectedDayOfWeek by remember { derivedStateOf {
+        selectedDate.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+    } }
 
     // Spacing configuration variables
     val outerMarginPx = 20f      // Distance from screen edge to outer habit layer
@@ -110,6 +127,11 @@ fun HabitTrackerDisplay() {
 
     // Mutable completions state
     var completions by remember { mutableStateOf(habitData.completions) }
+
+    // Derived habit abbreviation for selected habit
+    val selectedHabitAbbreviation by remember { derivedStateOf {
+        habitData.habits.getOrNull(selectedHabitIndex)?.abbreviation ?: ""
+    } }
 
     // Reload data when date changes
     LaunchedEffect(currentDate) {
@@ -158,99 +180,125 @@ fun HabitTrackerDisplay() {
         )
     }
 
-    Canvas(
-        modifier = Modifier
-            .size(screenSize)
-            .onRotaryScrollEvent { event ->
-
-                // Accumulate scroll delta
-                scrollAccumulator += event.verticalScrollPixels
-
-                // Check if we've accumulated enough to trigger a selection change
-                if (scrollAccumulator >= scrollThreshold) {
-                    // Scroll up: increase habit index
-                    if (selectedHabitIndex < numHabits - 1) {
-                        selectedHabitIndex++
-                    } else {
-                        // Wrapped to next day
-                        selectedHabitIndex = 0
-                        if (selectedDayIndex < numDays - 1) {
-                            selectedDayIndex++
-                        }
-                    }
-                    scrollAccumulator = 0f
-                } else if (scrollAccumulator <= -scrollThreshold) {
-                    // Scroll down: decrease habit index
-                    if (selectedHabitIndex > 0) {
-                        selectedHabitIndex--
-                    } else {
-                        // Wrapped to previous day
-                        selectedHabitIndex = numHabits - 1
-                        if (selectedDayIndex > 0) {
-                            selectedDayIndex--
-                        }
-                    }
-                    scrollAccumulator = 0f
-                }
-                true
-            }
-            .focusRequester(focusRequester)
-            .focusable()
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onLongPress = {
-                        // Find the selected habit's ID
-
-                        val selectedHabit = habitData.habits.getOrNull(selectedHabitIndex)
-                        if (selectedHabit != null) {
-                            // Find existing completion
-                            val existingCompletion = completions.find {
-                                it.habitId == selectedHabit.id && it.dayIndex == selectedDayIndex
-                            }
-
-                            // Toggle completion status
-                            val newCompletions = completions.toMutableList()
-                            if (existingCompletion != null) {
-                                newCompletions.remove(existingCompletion)
-                                val newStatus = when (existingCompletion.isCompleted) {
-                                    true -> false    // Completed -> Not completed
-                                    else -> true     // No data or not completed -> Completed
-                                }
-                                newCompletions.add(
-                                    existingCompletion.copy(isCompleted = newStatus)
-                                )
-                            } else {
-                                // No existing entry, create new one as completed
-                                newCompletions.add(
-                                    HabitCompletion(
-                                        habitId = selectedHabit.id,
-                                        dayIndex = selectedDayIndex,
-                                        isCompleted = true
-                                    )
-                                )
-                            }
-                            completions = newCompletions
-                        }
-                    }
-                )
-            }
+    Box(
+        modifier = Modifier.size(screenSize),
+        contentAlignment = Alignment.Center
     ) {
-        val center = Offset(size.width / 2f, size.height / 2f)
-        val maxRadius = size.width / 2f - outerMarginPx
+        Canvas(
+            modifier = Modifier
+                .size(screenSize)
+                .onRotaryScrollEvent { event ->
 
-        drawHabitTracker(
-            center = center,
-            maxRadius = maxRadius,
-            innerMargin = innerMarginPx,
-            habits = habitData.habits,
-            completions = completions,
-            darkBlue = darkBlue,
-            paleBlue = paleBlue,
-            paleGrey = paleGrey,
-            lightGreen = lightGreen,
-            darkGreen = darkGreen,
-            selectedDayIndex = selectedDayIndex,
-            selectedHabitIndex = selectedHabitIndex
+                    // Accumulate scroll delta
+                    scrollAccumulator += event.verticalScrollPixels
+
+                    // Check if we've accumulated enough to trigger a selection change
+                    if (scrollAccumulator >= scrollThreshold) {
+                        // Scroll up: increase habit index
+                        if (selectedHabitIndex < numHabits - 1) {
+                            selectedHabitIndex++
+                        } else {
+                            // Wrapped to next day
+                            selectedHabitIndex = 0
+                            if (selectedDayIndex < numDays - 1) {
+                                selectedDayIndex++
+                            }
+                        }
+                        scrollAccumulator = 0f
+                    } else if (scrollAccumulator <= -scrollThreshold) {
+                        // Scroll down: decrease habit index
+                        if (selectedHabitIndex > 0) {
+                            selectedHabitIndex--
+                        } else {
+                            // Wrapped to previous day
+                            selectedHabitIndex = numHabits - 1
+                            if (selectedDayIndex > 0) {
+                                selectedDayIndex--
+                            }
+                        }
+                        scrollAccumulator = 0f
+                    }
+                    true
+                }
+                .focusRequester(focusRequester)
+                .focusable()
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onLongPress = {
+                            // Find the selected habit's ID
+
+                            val selectedHabit = habitData.habits.getOrNull(selectedHabitIndex)
+                            if (selectedHabit != null) {
+                                // Find existing completion
+                                val existingCompletion = completions.find {
+                                    it.habitId == selectedHabit.id && it.dayIndex == selectedDayIndex
+                                }
+
+                                // Toggle completion status
+                                val newCompletions = completions.toMutableList()
+                                if (existingCompletion != null) {
+                                    newCompletions.remove(existingCompletion)
+                                    val newStatus = when (existingCompletion.isCompleted) {
+                                        true -> false    // Completed -> Not completed
+                                        else -> true     // No data or not completed -> Completed
+                                    }
+                                    newCompletions.add(
+                                        existingCompletion.copy(isCompleted = newStatus)
+                                    )
+                                } else {
+                                    // No existing entry, create new one as completed
+                                    newCompletions.add(
+                                        HabitCompletion(
+                                            habitId = selectedHabit.id,
+                                            dayIndex = selectedDayIndex,
+                                            isCompleted = true
+                                        )
+                                    )
+                                }
+                                completions = newCompletions
+                            }
+                        }
+                    )
+                }
+        ) {
+            val center = Offset(size.width / 2f, size.height / 2f)
+            val maxRadius = size.width / 2f - outerMarginPx
+
+            drawHabitTracker(
+                center = center,
+                maxRadius = maxRadius,
+                innerMargin = innerMarginPx,
+                habits = habitData.habits,
+                completions = completions,
+                darkBlue = darkBlue,
+                paleBlue = paleBlue,
+                paleGrey = paleGrey,
+                lightGreen = lightGreen,
+                darkGreen = darkGreen,
+                selectedDayIndex = selectedDayIndex,
+                selectedHabitIndex = selectedHabitIndex
+            )
+        }
+
+        // Date display in center
+        Text(
+            text = "$selectedDayOfWeek\n$selectedDayOfMonth",
+            fontSize = 10.sp,
+            lineHeight = 12.sp,
+            textAlign = TextAlign.Center,
+            color = Color.Black,
+            modifier = Modifier.align(Alignment.Center)
+        )
+
+        // Habit abbreviation at top, right of center
+        Text(
+            text = selectedHabitAbbreviation,
+            fontSize = 10.sp,
+            textAlign = TextAlign.Left,
+            color = Color.Black,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .offset(x = 102.dp, y = 20.dp)
         )
     }
 }
@@ -286,20 +334,37 @@ fun loadHabitData(context: Context, currentDate: LocalDate, numDays: Int): Habit
 fun parseHabitDataJson(jsonString: String, currentDate: LocalDate, numDays: Int): HabitData {
     val jsonObject = JSONObject(jsonString)
 
-    // Parse habits (unchanged)
-    val habitsArray = jsonObject.getJSONArray("habits")
+    // Parse habits from dictionary format
+    val habitsObject = jsonObject.getJSONObject("habits")
     val habits = mutableListOf<Habit>()
-    for (i in 0 until habitsArray.length()) {
-        val habitJson = habitsArray.getJSONObject(i)
-        val colorHex = habitJson.getString("colorHex")
-        val color = Color(android.graphics.Color.parseColor(colorHex))
-        habits.add(
-            Habit(
-                id = habitJson.getInt("id"),
-                name = habitJson.getString("name"),
-                color = color
-            )
-        )
+    val habitIdsIterator = habitsObject.keys()
+
+    while (habitIdsIterator.hasNext()) {
+        val habitIdString = habitIdsIterator.next()
+        val habitId = habitIdString.toInt()
+        val habitJson = habitsObject.getJSONObject(habitIdString)
+
+        val type = habitJson.getString("type")
+        val name = habitJson.getString("name")
+        val abbreviation = habitJson.getString("abbreviation")
+
+        when (type) {
+            "Binary" -> {
+                val colorHex = habitJson.getString("colorHex")
+                val color = Color(android.graphics.Color.parseColor(colorHex))
+                habits.add(
+                    Habit.BinaryHabit(
+                        id = habitId,
+                        name = name,
+                        abbreviation = abbreviation,
+                        color = color
+                    )
+                )
+            }
+            else -> {
+                println("Unknown habit type: $type for habit ID $habitId")
+            }
+        }
     }
 
     // Generate list of dates for the last numDays (going backwards from currentDate)
@@ -368,16 +433,23 @@ fun saveHabitDataToFile(context: Context, habitData: HabitData, currentDate: Loc
         // Create JSON object
         val jsonObject = JSONObject()
 
-        // Add habits array
-        val habitsArray = JSONArray()
+        // Add habits dictionary
+        val habitsObject = JSONObject()
         habitData.habits.forEach { habit ->
             val habitJson = JSONObject()
-            habitJson.put("id", habit.id)
             habitJson.put("name", habit.name)
-            habitJson.put("colorHex", "#1565C0")
-            habitsArray.put(habitJson)
+            habitJson.put("abbreviation", habit.abbreviation)
+
+            when (habit) {
+                is Habit.BinaryHabit -> {
+                    habitJson.put("type", "Binary")
+                    habitJson.put("colorHex", "#1565C0")
+                }
+            }
+
+            habitsObject.put(habit.id.toString(), habitJson)
         }
-        jsonObject.put("habits", habitsArray)
+        jsonObject.put("habits", habitsObject)
 
         // Generate list of dates for the last numDays (going backwards from currentDate)
         val dateList = mutableListOf<LocalDate>()
