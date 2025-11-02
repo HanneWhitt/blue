@@ -6,6 +6,11 @@ A unique circular display shows days as sectors, and different habits as differe
 
 You can scroll through the habits and days easily to record when you have completed your habits!
 
+Upon first run, loads data from assets/initial_habit_data.json. Once any edit has been made to data, it will instead store data in /data/data/com.example.blue/files/saved_habit_data.json and reload it upon launch. 
+
+The main Kotlin file is app/src/main/java/com/example/blue/presentation/MainActivity.kt
+
+
 ## Features
 
 - Habit tracking with visual progress indicators

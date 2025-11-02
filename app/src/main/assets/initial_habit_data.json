@@ -26,60 +26,66 @@
       "colorHex": "#1565C0"
     }
   ],
-  "completions": [
-    {"habitId": 0, "dayIndex": 0, "isCompleted": null},
-    {"habitId": 0, "dayIndex": 1, "isCompleted": null},
-    {"habitId": 0, "dayIndex": 2, "isCompleted": true},
-    {"habitId": 0, "dayIndex": 3, "isCompleted": true},
-    {"habitId": 0, "dayIndex": 4, "isCompleted": true},
-    {"habitId": 0, "dayIndex": 5, "isCompleted": false},
-    {"habitId": 0, "dayIndex": 6, "isCompleted": false},
-    {"habitId": 0, "dayIndex": 7, "isCompleted": false},
-    {"habitId": 0, "dayIndex": 8, "isCompleted": true},
-    {"habitId": 0, "dayIndex": 9, "isCompleted": true},
-
-    {"habitId": 1, "dayIndex": 0, "isCompleted": null},
-    {"habitId": 1, "dayIndex": 1, "isCompleted": null},
-    {"habitId": 1, "dayIndex": 2, "isCompleted": false},
-    {"habitId": 1, "dayIndex": 3, "isCompleted": false},
-    {"habitId": 1, "dayIndex": 4, "isCompleted": false},
-    {"habitId": 1, "dayIndex": 5, "isCompleted": true},
-    {"habitId": 1, "dayIndex": 6, "isCompleted": true},
-    {"habitId": 1, "dayIndex": 7, "isCompleted": true},
-    {"habitId": 1, "dayIndex": 8, "isCompleted": true},
-    {"habitId": 1, "dayIndex": 9, "isCompleted": true},
-
-    {"habitId": 2, "dayIndex": 0, "isCompleted": null},
-    {"habitId": 2, "dayIndex": 1, "isCompleted": null},
-    {"habitId": 2, "dayIndex": 2, "isCompleted": true},
-    {"habitId": 2, "dayIndex": 3, "isCompleted": true},
-    {"habitId": 2, "dayIndex": 4, "isCompleted": true},
-    {"habitId": 2, "dayIndex": 5, "isCompleted": false},
-    {"habitId": 2, "dayIndex": 6, "isCompleted": false},
-    {"habitId": 2, "dayIndex": 7, "isCompleted": false},
-    {"habitId": 2, "dayIndex": 8, "isCompleted": null},
-    {"habitId": 2, "dayIndex": 9, "isCompleted": null},
-
-    {"habitId": 3, "dayIndex": 0, "isCompleted": null},
-    {"habitId": 3, "dayIndex": 1, "isCompleted": null},
-    {"habitId": 3, "dayIndex": 2, "isCompleted": false},
-    {"habitId": 3, "dayIndex": 3, "isCompleted": false},
-    {"habitId": 3, "dayIndex": 4, "isCompleted": false},
-    {"habitId": 3, "dayIndex": 5, "isCompleted": true},
-    {"habitId": 3, "dayIndex": 6, "isCompleted": true},
-    {"habitId": 3, "dayIndex": 7, "isCompleted": true},
-    {"habitId": 3, "dayIndex": 8, "isCompleted": true},
-    {"habitId": 3, "dayIndex": 9, "isCompleted": true},
-
-    {"habitId": 4, "dayIndex": 0, "isCompleted": null},
-    {"habitId": 4, "dayIndex": 1, "isCompleted": null},
-    {"habitId": 4, "dayIndex": 2, "isCompleted": null},
-    {"habitId": 4, "dayIndex": 3, "isCompleted": null},
-    {"habitId": 4, "dayIndex": 4, "isCompleted": null},
-    {"habitId": 4, "dayIndex": 5, "isCompleted": true},
-    {"habitId": 4, "dayIndex": 6, "isCompleted": true},
-    {"habitId": 4, "dayIndex": 7, "isCompleted": true},
-    {"habitId": 4, "dayIndex": 8, "isCompleted": false},
-    {"habitId": 4, "dayIndex": 9, "isCompleted": false}
-  ]
+  "completions": {
+    "0": {
+      "2025-11-02": {"iscompleted": null},
+      "2025-11-01": {"iscompleted": null},
+      "2025-10-31": {"iscompleted": true},
+      "2025-10-30": {"iscompleted": true},
+      "2025-10-29": {"iscompleted": true},
+      "2025-10-28": {"iscompleted": false},
+      "2025-10-27": {"iscompleted": false},
+      "2025-10-26": {"iscompleted": false},
+      "2025-10-25": {"iscompleted": true},
+      "2025-10-24": {"iscompleted": true}
+    },
+    "1": {
+      "2025-11-02": {"iscompleted": null},
+      "2025-11-01": {"iscompleted": null},
+      "2025-10-31": {"iscompleted": false},
+      "2025-10-30": {"iscompleted": false},
+      "2025-10-29": {"iscompleted": false},
+      "2025-10-28": {"iscompleted": true},
+      "2025-10-27": {"iscompleted": true},
+      "2025-10-26": {"iscompleted": true},
+      "2025-10-25": {"iscompleted": true},
+      "2025-10-24": {"iscompleted": true}
+    },
+    "2": {
+      "2025-11-02": {"iscompleted": null},
+      "2025-11-01": {"iscompleted": null},
+      "2025-10-31": {"iscompleted": true},
+      "2025-10-30": {"iscompleted": true},
+      "2025-10-29": {"iscompleted": true},
+      "2025-10-28": {"iscompleted": false},
+      "2025-10-27": {"iscompleted": false},
+      "2025-10-26": {"iscompleted": false},
+      "2025-10-25": {"iscompleted": null},
+      "2025-10-24": {"iscompleted": null}
+    },
+    "3": {
+      "2025-11-02": {"iscompleted": null},
+      "2025-11-01": {"iscompleted": null},
+      "2025-10-31": {"iscompleted": false},
+      "2025-10-30": {"iscompleted": false},
+      "2025-10-29": {"iscompleted": false},
+      "2025-10-28": {"iscompleted": true},
+      "2025-10-27": {"iscompleted": true},
+      "2025-10-26": {"iscompleted": true},
+      "2025-10-25": {"iscompleted": true},
+      "2025-10-24": {"iscompleted": true}
+    },
+    "4": {
+      "2025-11-02": {"iscompleted": null},
+      "2025-11-01": {"iscompleted": null},
+      "2025-10-31": {"iscompleted": null},
+      "2025-10-30": {"iscompleted": null},
+      "2025-10-29": {"iscompleted": null},
+      "2025-10-28": {"iscompleted": true},
+      "2025-10-27": {"iscompleted": true},
+      "2025-10-26": {"iscompleted": true},
+      "2025-10-25": {"iscompleted": false},
+      "2025-10-24": {"iscompleted": false}
+    }
+  }
 }

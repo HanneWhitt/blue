@@ -25,12 +25,16 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.wear.compose.material.*
 import org.json.JSONArray
 import org.json.JSONObject
+import java.time.LocalDate
 import kotlin.math.*
 
 class MainActivity : ComponentActivity() {
@@ -76,6 +80,9 @@ data class HabitData(
 
 @Composable
 fun HabitTrackerDisplay() {
+    // Current date tracking
+    var currentDate by remember { mutableStateOf(LocalDate.now()) }
+
     // Selection state
     var selectedDayIndex by remember { mutableStateOf(0) }
     var selectedHabitIndex by remember { mutableStateOf(0) }
@@ -96,22 +103,46 @@ fun HabitTrackerDisplay() {
     val darkGreen = Color(0xFF2E7D32)     // Dark green for selected (completed)
 
     val context = LocalContext.current
-    val initialHabitData = remember {
-        loadHabitData(context)
-    }
+    val numDays = 10
+
+    // Load habit data - reloads when currentDate changes
+    var habitData by remember { mutableStateOf(loadHabitData(context, currentDate, numDays)) }
 
     // Mutable completions state
-    var completions by remember { mutableStateOf(initialHabitData.completions) }
+    var completions by remember { mutableStateOf(habitData.completions) }
+
+    // Reload data when date changes
+    LaunchedEffect(currentDate) {
+        habitData = loadHabitData(context, currentDate, numDays)
+        completions = habitData.completions
+    }
 
     val density = LocalDensity.current
     val screenSize = 200.dp // Approximate watch screen size
     val focusRequester = remember { FocusRequester() }
 
-    val numHabits = initialHabitData.habits.size
-    val numDays = 10
+    val numHabits = habitData.habits.size
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
+    }
+
+    // Monitor lifecycle events to check for date changes
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME || event == Lifecycle.Event.ON_START) {
+                val newDate = LocalDate.now()
+                if (newDate != currentDate) {
+                    println("DATE HAS CHANGED!")
+                    currentDate = newDate
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     // Save data whenever completions change
@@ -119,9 +150,11 @@ fun HabitTrackerDisplay() {
         saveHabitDataToFile(
             context,
             HabitData(
-                habits = initialHabitData.habits,
+                habits = habitData.habits,
                 completions = completions
-            )
+            ),
+            currentDate,
+            numDays
         )
     }
 
@@ -168,7 +201,7 @@ fun HabitTrackerDisplay() {
                     onLongPress = {
                         // Find the selected habit's ID
 
-                        val selectedHabit = initialHabitData.habits.getOrNull(selectedHabitIndex)
+                        val selectedHabit = habitData.habits.getOrNull(selectedHabitIndex)
                         if (selectedHabit != null) {
                             // Find existing completion
                             val existingCompletion = completions.find {
@@ -209,7 +242,7 @@ fun HabitTrackerDisplay() {
             center = center,
             maxRadius = maxRadius,
             innerMargin = innerMarginPx,
-            habits = initialHabitData.habits,
+            habits = habitData.habits,
             completions = completions,
             darkBlue = darkBlue,
             paleBlue = paleBlue,
@@ -222,9 +255,11 @@ fun HabitTrackerDisplay() {
     }
 }
 
-fun loadHabitData(context: Context): HabitData {
+fun loadHabitData(context: Context, currentDate: LocalDate, numDays: Int): HabitData {
     val savedDataFile = "saved_habit_data.json"
     val initialDataFile = "initial_habit_data.json"
+
+    println("Loading data for $numDays days ending on $currentDate")
 
     return try {
         // First, try to load from internal storage
@@ -232,13 +267,13 @@ fun loadHabitData(context: Context): HabitData {
         if (file.exists()) {
             println("Loading data from internal storage: $savedDataFile")
             val jsonString = context.openFileInput(savedDataFile).bufferedReader().use { it.readText() }
-            parseHabitDataJson(jsonString)
+            parseHabitDataJson(jsonString, currentDate, numDays)
         } else {
             // If saved file doesn't exist, load from assets
             println("Saved data not found, loading from assets: $initialDataFile")
             val inputStream = context.assets.open(initialDataFile)
             val jsonString = inputStream.bufferedReader().use { it.readText() }
-            parseHabitDataJson(jsonString)
+            parseHabitDataJson(jsonString, currentDate, numDays)
         }
     } catch (e: Exception) {
         println("Error loading habit data: ${e.message}")
@@ -248,9 +283,10 @@ fun loadHabitData(context: Context): HabitData {
     }
 }
 
-fun parseHabitDataJson(jsonString: String): HabitData {
+fun parseHabitDataJson(jsonString: String, currentDate: LocalDate, numDays: Int): HabitData {
     val jsonObject = JSONObject(jsonString)
 
+    // Parse habits (unchanged)
     val habitsArray = jsonObject.getJSONArray("habits")
     val habits = mutableListOf<Habit>()
     for (i in 0 until habitsArray.length()) {
@@ -266,30 +302,68 @@ fun parseHabitDataJson(jsonString: String): HabitData {
         )
     }
 
-    val completionsArray = jsonObject.getJSONArray("completions")
+    // Generate list of dates for the last numDays (going backwards from currentDate)
+    val dateList = mutableListOf<LocalDate>()
+    for (i in 0 until numDays) {
+        dateList.add(currentDate.minusDays(i.toLong()))
+    }
+
+    // Parse completions from new date-based format
+    val completionsObject = jsonObject.getJSONObject("completions")
     val completions = mutableListOf<HabitCompletion>()
-    for (i in 0 until completionsArray.length()) {
-        val completionJson = completionsArray.getJSONObject(i)
-        val isCompleted = if (completionJson.isNull("isCompleted")) {
-            null
-        } else {
-            completionJson.getBoolean("isCompleted")
+
+    // Iterate through each habit ID
+    val habitIds = completionsObject.keys()
+    while (habitIds.hasNext()) {
+        val habitIdString = habitIds.next()
+        val habitId = habitIdString.toInt()
+        val habitDatesObject = completionsObject.getJSONObject(habitIdString)
+
+        // For each date in our range, check if data exists
+        dateList.forEachIndexed { dayIndex, date ->
+            val dateString = date.toString() // Format: YYYY-MM-DD
+
+            if (habitDatesObject.has(dateString)) {
+                val dateData = habitDatesObject.getJSONObject(dateString)
+                val isCompleted = if (dateData.isNull("iscompleted")) {
+                    null
+                } else {
+                    dateData.getBoolean("iscompleted")
+                }
+
+                completions.add(
+                    HabitCompletion(
+                        habitId = habitId,
+                        dayIndex = dayIndex,
+                        isCompleted = isCompleted
+                    )
+                )
+            }
+            // If date doesn't exist in data, we don't add a completion entry
         }
-        completions.add(
-            HabitCompletion(
-                habitId = completionJson.getInt("habitId"),
-                dayIndex = completionJson.getInt("dayIndex"),
-                isCompleted = isCompleted
-            )
-        )
     }
 
     return HabitData(habits, completions)
 }
 
-fun saveHabitDataToFile(context: Context, habitData: HabitData) {
+fun saveHabitDataToFile(context: Context, habitData: HabitData, currentDate: LocalDate, numDays: Int) {
     try {
         val output_data_file = "saved_habit_data.json"
+
+        // Load existing data if it exists to preserve historical records
+        val existingCompletionsObject = try {
+            val file = context.getFileStreamPath(output_data_file)
+            if (file.exists()) {
+                val jsonString = context.openFileInput(output_data_file).bufferedReader().use { it.readText() }
+                val existingJsonObject = JSONObject(jsonString)
+                existingJsonObject.getJSONObject("completions")
+            } else {
+                JSONObject()
+            }
+        } catch (e: Exception) {
+            println("No existing data to merge, creating new file")
+            JSONObject()
+        }
 
         // Create JSON object
         val jsonObject = JSONObject()
@@ -305,20 +379,51 @@ fun saveHabitDataToFile(context: Context, habitData: HabitData) {
         }
         jsonObject.put("habits", habitsArray)
 
-        // Add completions array
-        val completionsArray = JSONArray()
-        habitData.completions.forEach { completion ->
-            val completionJson = JSONObject()
-            completionJson.put("habitId", completion.habitId)
-            completionJson.put("dayIndex", completion.dayIndex)
-            if (completion.isCompleted != null) {
-                completionJson.put("isCompleted", completion.isCompleted)
-            } else {
-                completionJson.put("isCompleted", JSONObject.NULL)
-            }
-            completionsArray.put(completionJson)
+        // Generate list of dates for the last numDays (going backwards from currentDate)
+        val dateList = mutableListOf<LocalDate>()
+        for (i in 0 until numDays) {
+            dateList.add(currentDate.minusDays(i.toLong()))
         }
-        jsonObject.put("completions", completionsArray)
+
+        // Merge new completions with existing historical data
+        val completionsObject = JSONObject()
+
+        // Group new completions by habit ID
+        val completionsByHabit = habitData.completions.groupBy { it.habitId }
+
+        habitData.habits.forEach { habit ->
+            val habitIdString = habit.id.toString()
+
+            // Get existing dates for this habit (if any)
+            val habitDatesObject = if (existingCompletionsObject.has(habitIdString)) {
+                existingCompletionsObject.getJSONObject(habitIdString)
+            } else {
+                JSONObject()
+            }
+
+            // Add/update new completion data
+            val habitCompletions = completionsByHabit[habit.id] ?: emptyList()
+            habitCompletions.forEach { completion ->
+                if (completion.dayIndex < dateList.size) {
+                    val date = dateList[completion.dayIndex]
+                    val dateString = date.toString() // Format: YYYY-MM-DD
+                    val dateData = JSONObject()
+
+                    if (completion.isCompleted != null) {
+                        dateData.put("iscompleted", completion.isCompleted)
+                    } else {
+                        dateData.put("iscompleted", JSONObject.NULL)
+                    }
+
+                    // This will add new dates or update existing ones
+                    habitDatesObject.put(dateString, dateData)
+                }
+            }
+
+            completionsObject.put(habitIdString, habitDatesObject)
+        }
+
+        jsonObject.put("completions", completionsObject)
 
         // Write to internal storage
         context.openFileOutput(output_data_file, Context.MODE_PRIVATE).use { outputStream ->
