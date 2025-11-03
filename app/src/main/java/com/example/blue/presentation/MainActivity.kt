@@ -12,10 +12,12 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
@@ -101,7 +103,9 @@ fun HabitTrackerDisplay() {
     var selectedDayIndex by remember { mutableStateOf(0) }
     var selectedHabitIndex by remember { mutableStateOf(0) }
     var scrollAccumulator by remember { mutableStateOf(0f) }
-    val scrollThreshold = 25f  // Adjust this value to control sensitivity
+    var touchScrollAccumulator by remember { mutableStateOf(0f) }
+    val scrollThreshold = 25f  // Adjust this value to control rotary scroll sensitivity
+    val touchScrollThreshold = 50f  // Adjust this value to control touch scroll sensitivity
 
     // Derived date information for selected day
     val selectedDate by remember { derivedStateOf { currentDate.minusDays(selectedDayIndex.toLong()) } }
@@ -111,7 +115,7 @@ fun HabitTrackerDisplay() {
     } }
 
     // Spacing configuration variables
-    val outerMarginPx = 20f      // Distance from screen edge to outer habit layer
+    val outerMarginPx = 30f      // Distance from screen edge to outer habit layer
     val innerMarginPx = 40f      // Distance from screen center to inner habit layer
 
     // Define your three colors
@@ -143,8 +147,8 @@ fun HabitTrackerDisplay() {
         completions = habitData.completions
     }
 
-    val density = LocalDensity.current
-    val screenSize = 200.dp // Approximate watch screen size
+    val configuration = LocalConfiguration.current
+    val screenSize = minOf(configuration.screenWidthDp.dp, configuration.screenHeightDp.dp)
     val focusRequester = remember { FocusRequester() }
 
     val numHabits = habitData.habits.size
@@ -226,8 +230,68 @@ fun HabitTrackerDisplay() {
                 }
                 .focusRequester(focusRequester)
                 .focusable()
+                .pointerInput("drag") {
+                    detectDragGestures { _, dragAmount ->
+                        // Accumulate vertical drag (negative dragAmount.y = drag up, positive = drag down)
+                        touchScrollAccumulator += dragAmount.y
+
+                        // Check if we've accumulated enough to trigger a selection change
+                        if (touchScrollAccumulator >= touchScrollThreshold) {
+                            // Drag down: decrease habit index (same as scroll down)
+                            if (selectedHabitIndex > 0) {
+                                selectedHabitIndex--
+                            } else {
+                                // Wrapped to previous day
+                                selectedHabitIndex = numHabits - 1
+                                if (selectedDayIndex > 0) {
+                                    selectedDayIndex--
+                                }
+                            }
+                            touchScrollAccumulator = 0f
+                        } else if (touchScrollAccumulator <= -touchScrollThreshold) {
+                            // Drag up: increase habit index (same as scroll up)
+                            if (selectedHabitIndex < numHabits - 1) {
+                                selectedHabitIndex++
+                            } else {
+                                // Wrapped to next day
+                                selectedHabitIndex = 0
+                                if (selectedDayIndex < numDays - 1) {
+                                    selectedDayIndex++
+                                }
+                            }
+                            touchScrollAccumulator = 0f
+                        }
+                    }
+                }
                 .pointerInput(Unit) {
                     detectTapGestures(
+                        onTap = { offset ->
+                            // Tap upper half: advance forward (increase habit index)
+                            // Tap lower half: go backward (decrease habit index)
+                            if (offset.y < size.height / 2) {
+                                // Upper half - advance forward
+                                if (selectedHabitIndex < numHabits - 1) {
+                                    selectedHabitIndex++
+                                } else {
+                                    // Wrapped to next day
+                                    selectedHabitIndex = 0
+                                    if (selectedDayIndex < numDays - 1) {
+                                        selectedDayIndex++
+                                    }
+                                }
+                            } else {
+                                // Lower half - go backward
+                                if (selectedHabitIndex > 0) {
+                                    selectedHabitIndex--
+                                } else {
+                                    // Wrapped to previous day
+                                    selectedHabitIndex = numHabits - 1
+                                    if (selectedDayIndex > 0) {
+                                        selectedDayIndex--
+                                    }
+                                }
+                            }
+                        },
                         onLongPress = {
                             // Find the selected habit's ID
 
@@ -302,14 +366,20 @@ fun HabitTrackerDisplay() {
         )
 
         // Habit abbreviation at top, right of center
+        // Calculate position: vertically at middle of habit stack
+        val stackRadiusDp = screenSize / 2 - outerMarginPx.dp - innerMarginPx.dp
+        val middleOfHabitStackDp = innerMarginPx.dp + stackRadiusDp / 2
+        val habitTextYOffset = - middleOfHabitStackDp
+        val habitTextXOffset = screenSize / 2 + 2.dp
+
         Text(
             text = selectedHabitAbbreviation,
             fontSize = 10.sp,
             textAlign = TextAlign.Left,
             color = Color.Black,
             modifier = Modifier
-                .align(Alignment.TopStart)
-                .offset(x = 102.dp, y = 20.dp)
+                .align(Alignment.CenterStart)
+                .offset(x = habitTextXOffset, y = habitTextYOffset)
         )
     }
 }
