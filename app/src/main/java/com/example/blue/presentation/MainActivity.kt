@@ -2,7 +2,11 @@
 package com.example.blue.presentation
 
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
@@ -242,11 +246,18 @@ fun HabitTrackerDisplay() {
                                         true -> false    // Completed -> Not completed
                                         else -> true     // No data or not completed -> Completed
                                     }
+
+                                    // Vibrate when marking habit as completed
+                                    if (newStatus == true) {
+                                        vibrate(context)
+                                    }
+
                                     newCompletions.add(
                                         existingCompletion.copy(isCompleted = newStatus)
                                     )
                                 } else {
                                     // No existing entry, create new one as completed
+                                    vibrate(context)
                                     newCompletions.add(
                                         HabitCompletion(
                                             habitId = selectedHabit.id,
@@ -301,6 +312,19 @@ fun HabitTrackerDisplay() {
                 .offset(x = 102.dp, y = 20.dp)
         )
     }
+}
+
+fun vibrate(context: Context, durationMs: Long = 300) {
+    val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+        vibratorManager.defaultVibrator
+    } else {
+        @Suppress("DEPRECATION")
+        context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+    }
+
+    val vibrationEffect = VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE)
+    vibrator.vibrate(vibrationEffect)
 }
 
 fun loadHabitData(context: Context, currentDate: LocalDate, numDays: Int): HabitData {
