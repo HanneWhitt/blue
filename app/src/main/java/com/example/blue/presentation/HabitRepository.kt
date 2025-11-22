@@ -64,6 +64,30 @@ fun parseHabitDataJson(jsonString: String, currentDate: LocalDate, numDays: Int)
                     )
                 )
             }
+            "Time-based" -> {
+                val colorHex = habitJson.getString("colorHex")
+                val color = Color(android.graphics.Color.parseColor(colorHex))
+                habits.add(
+                    Habit.TimeBasedHabit(
+                        id = habitId,
+                        name = name,
+                        abbreviation = abbreviation,
+                        color = color
+                    )
+                )
+            }
+            "Multiple" -> {
+                val colorHex = habitJson.getString("colorHex")
+                val color = Color(android.graphics.Color.parseColor(colorHex))
+                habits.add(
+                    Habit.MultipleHabit(
+                        id = habitId,
+                        name = name,
+                        abbreviation = abbreviation,
+                        color = color
+                    )
+                )
+            }
             else -> {
                 println("Unknown habit type: $type for habit ID $habitId")
             }
@@ -148,6 +172,14 @@ fun saveHabitDataToFile(context: Context, habitData: HabitData, currentDate: Loc
                     habitJson.put("type", "Binary")
                     habitJson.put("colorHex", "#1565C0")
                 }
+                is Habit.TimeBasedHabit -> {
+                    habitJson.put("type", "Time-based")
+                    habitJson.put("colorHex", "#1565C0")
+                }
+                is Habit.MultipleHabit -> {
+                    habitJson.put("type", "Multiple")
+                    habitJson.put("colorHex", "#1565C0")
+                }
             }
 
             habitsObject.put(habit.id.toString(), habitJson)
@@ -211,3 +243,92 @@ fun saveHabitDataToFile(context: Context, habitData: HabitData, currentDate: Loc
         e.printStackTrace()
     }
 }
+
+fun createHabit(
+    context: Context,
+    currentDate: LocalDate,
+    numDays: Int,
+    name: String,
+    abbreviation: String,
+    type: HabitType
+): HabitData {
+    val habitData = loadHabitData(context, currentDate, numDays)
+
+    // Find the next available ID
+    val nextId = if (habitData.habits.isEmpty()) {
+        0
+    } else {
+        (habitData.habits.maxOf { it.id }) + 1
+    }
+
+    // Create the new habit based on type
+    val color = Color(android.graphics.Color.parseColor("#1565C0"))
+    val newHabit = when (type) {
+        HabitType.BINARY -> Habit.BinaryHabit(nextId, name, abbreviation, color)
+        HabitType.TIME_BASED -> Habit.TimeBasedHabit(nextId, name, abbreviation, color)
+        HabitType.MULTIPLE -> Habit.MultipleHabit(nextId, name, abbreviation, color)
+    }
+
+    // Add new habit to the list
+    val updatedHabits = habitData.habits + newHabit
+    val updatedHabitData = HabitData(updatedHabits, habitData.completions)
+
+    // Save to file
+    saveHabitDataToFile(context, updatedHabitData, currentDate, numDays)
+
+    return updatedHabitData
+}
+
+fun updateHabit(
+    context: Context,
+    currentDate: LocalDate,
+    numDays: Int,
+    habitId: Int,
+    name: String,
+    abbreviation: String,
+    type: HabitType
+): HabitData {
+    val habitData = loadHabitData(context, currentDate, numDays)
+
+    // Update the habit
+    val color = Color(android.graphics.Color.parseColor("#1565C0"))
+    val updatedHabits = habitData.habits.map { habit ->
+        if (habit.id == habitId) {
+            when (type) {
+                HabitType.BINARY -> Habit.BinaryHabit(habitId, name, abbreviation, color)
+                HabitType.TIME_BASED -> Habit.TimeBasedHabit(habitId, name, abbreviation, color)
+                HabitType.MULTIPLE -> Habit.MultipleHabit(habitId, name, abbreviation, color)
+            }
+        } else {
+            habit
+        }
+    }
+
+    val updatedHabitData = HabitData(updatedHabits, habitData.completions)
+
+    // Save to file
+    saveHabitDataToFile(context, updatedHabitData, currentDate, numDays)
+
+    return updatedHabitData
+}
+
+fun deleteHabit(
+    context: Context,
+    currentDate: LocalDate,
+    numDays: Int,
+    habitId: Int
+): HabitData {
+    val habitData = loadHabitData(context, currentDate, numDays)
+
+    // Remove the habit and its completions
+    val updatedHabits = habitData.habits.filter { it.id != habitId }
+    val updatedCompletions = habitData.completions.filter { it.habitId != habitId }
+
+    val updatedHabitData = HabitData(updatedHabits, updatedCompletions)
+
+    // Save to file
+    saveHabitDataToFile(context, updatedHabitData, currentDate, numDays)
+
+    return updatedHabitData
+}
+

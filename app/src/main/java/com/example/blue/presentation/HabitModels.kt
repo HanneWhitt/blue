@@ -21,6 +21,20 @@ sealed class Habit {
         override val abbreviation: String,
         val color: Color
     ) : Habit()
+
+    data class TimeBasedHabit(
+        override val id: Int,
+        override val name: String,
+        override val abbreviation: String,
+        val color: Color
+    ) : Habit()
+
+    data class MultipleHabit(
+        override val id: Int,
+        override val name: String,
+        override val abbreviation: String,
+        val color: Color
+    ) : Habit()
 }
 
 data class HabitData(

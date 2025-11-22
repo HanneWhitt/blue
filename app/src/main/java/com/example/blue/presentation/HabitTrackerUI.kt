@@ -263,40 +263,51 @@ fun HabitTrackerDisplay(
                                 // Find the selected habit's ID
                                 val selectedHabit = habitData.habits.getOrNull(selectedHabitIndex)
                                 if (selectedHabit != null) {
-                                    // Find existing completion
-                                    val existingCompletion = completions.find {
-                                        it.habitId == selectedHabit.id && it.dayIndex == selectedDayIndex
-                                    }
-
-                                    // Toggle completion status
-                                    val newCompletions = completions.toMutableList()
-                                    if (existingCompletion != null) {
-                                        newCompletions.remove(existingCompletion)
-                                        val newStatus = when (existingCompletion.isCompleted) {
-                                            true -> false    // Completed -> Not completed
-                                            else -> true     // No data or not completed -> Completed
+                                    // Check if habit type is implemented
+                                    when (selectedHabit) {
+                                        is Habit.TimeBasedHabit -> {
+                                            throw NotImplementedError("Time-based habit completion not yet implemented")
                                         }
-
-                                        // Vibrate when marking habit as completed
-                                        if (newStatus == true) {
-                                            vibrate(context)
+                                        is Habit.MultipleHabit -> {
+                                            throw NotImplementedError("Multiple habit completion not yet implemented")
                                         }
+                                        is Habit.BinaryHabit -> {
+                                            // Find existing completion
+                                            val existingCompletion = completions.find {
+                                                it.habitId == selectedHabit.id && it.dayIndex == selectedDayIndex
+                                            }
 
-                                        newCompletions.add(
-                                            existingCompletion.copy(isCompleted = newStatus)
-                                        )
-                                    } else {
-                                        // No existing entry, create new one as completed
-                                        vibrate(context)
-                                        newCompletions.add(
-                                            HabitCompletion(
-                                                habitId = selectedHabit.id,
-                                                dayIndex = selectedDayIndex,
-                                                isCompleted = true
-                                            )
-                                        )
+                                            // Toggle completion status
+                                            val newCompletions = completions.toMutableList()
+                                            if (existingCompletion != null) {
+                                                newCompletions.remove(existingCompletion)
+                                                val newStatus = when (existingCompletion.isCompleted) {
+                                                    true -> false    // Completed -> Not completed
+                                                    else -> true     // No data or not completed -> Completed
+                                                }
+
+                                                // Vibrate when marking habit as completed
+                                                if (newStatus == true) {
+                                                    vibrate(context)
+                                                }
+
+                                                newCompletions.add(
+                                                    existingCompletion.copy(isCompleted = newStatus)
+                                                )
+                                            } else {
+                                                // No existing entry, create new one as completed
+                                                vibrate(context)
+                                                newCompletions.add(
+                                                    HabitCompletion(
+                                                        habitId = selectedHabit.id,
+                                                        dayIndex = selectedDayIndex,
+                                                        isCompleted = true
+                                                    )
+                                                )
+                                            }
+                                            completions = newCompletions
+                                        }
                                     }
-                                    completions = newCompletions
                                 }
                             }
                         }

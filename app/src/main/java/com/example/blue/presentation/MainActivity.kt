@@ -31,6 +31,7 @@ class MainActivity : ComponentActivity() {
 fun WearApp() {
     MaterialTheme {
         val navController = rememberSwipeDismissableNavController()
+        val context = LocalContext.current
 
         Box(
             modifier = Modifier
@@ -49,16 +50,49 @@ fun WearApp() {
                 }
 
                 composable("manage") {
-                    val context = LocalContext.current
                     val habitData = loadHabitData(context, LocalDate.now(), 10)
 
                     HabitManagementScreen(
                         habitData = habitData,
                         onAddHabit = {
-                            // TODO: Navigate to add habit screen
+                            navController.navigate("edit/-1")
                         },
                         onEditHabit = { habit ->
-                            // TODO: Navigate to edit habit screen
+                            navController.navigate("edit/${habit.id}")
+                        }
+                    )
+                }
+
+                composable("edit/{habitId}") { backStackEntry ->
+                    val habitIdString = backStackEntry.arguments?.getString("habitId") ?: "-1"
+                    val habitId = habitIdString.toIntOrNull() ?: -1
+
+                    val habitData = loadHabitData(context, LocalDate.now(), 10)
+                    val existingHabit = if (habitId >= 0) {
+                        habitData.habits.find { it.id == habitId }
+                    } else {
+                        null
+                    }
+
+                    HabitEditScreen(
+                        existingHabit = existingHabit,
+                        onSave = { name, abbreviation, type ->
+                            if (existingHabit != null) {
+                                // Update existing habit
+                                updateHabit(context, LocalDate.now(), 10, habitId, name, abbreviation, type)
+                            } else {
+                                // Create new habit
+                                createHabit(context, LocalDate.now(), 10, name, abbreviation, type)
+                            }
+                            navController.popBackStack()
+                        },
+                        onDelete = if (existingHabit != null) {
+                            {
+                                deleteHabit(context, LocalDate.now(), 10, habitId)
+                                navController.popBackStack()
+                            }
+                        } else {
+                            null
                         }
                     )
                 }

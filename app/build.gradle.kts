@@ -56,6 +56,7 @@ dependencies {
     implementation("androidx.wear.compose:compose-foundation:1.4.0")
     implementation("androidx.wear.compose:compose-navigation:1.4.0")
     implementation("androidx.compose.ui:ui-geometry:1.7.5")
+    implementation("androidx.wear:wear-input:1.1.0")
 
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.ui.test.junit4)
