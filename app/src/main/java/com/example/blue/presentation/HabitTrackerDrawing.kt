@@ -6,6 +6,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.asin
@@ -248,5 +249,44 @@ fun DrawScope.drawHabitTracker(
                 }
             }
         }
+    }
+}
+
+fun DrawScope.drawPartiallyFilledCircle(
+    color: Color,
+    center: Offset,
+    radius: Float,
+    fillFrac: Float,
+    backgroundColor: Color? = null
+) {
+    // Draw background circle if specified
+    backgroundColor?.let {
+        drawCircle(
+            color = it,
+            radius = radius,
+            center = center
+        )
+    }
+
+    // Calculate the y-position of the fill line
+    // fillFrac=0 -> bottom of circle (cy + r)
+    // fillFrac=0.5 -> center (cy)
+    // fillFrac=1 -> top of circle (cy - r)
+    val fillHeight = 2 * radius * fillFrac
+    val clipBottom = center.y + radius
+    val clipTop = clipBottom - fillHeight
+
+    // Clip and draw the filled portion
+    clipRect(
+        left = center.x - radius,
+        top = clipTop,
+        right = center.x + radius,
+        bottom = clipBottom
+    ) {
+        drawCircle(
+            color = color,
+            radius = radius,
+            center = center
+        )
     }
 }

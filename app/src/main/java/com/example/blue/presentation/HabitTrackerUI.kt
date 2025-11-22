@@ -403,6 +403,15 @@ fun HabitTrackerDisplay(
                 selectedDayIndex = selectedDayIndex,
                 selectedHabitIndex = selectedHabitIndex
             )
+
+            // TEST: Draw a 1/4 filled circle in the center
+            drawPartiallyFilledCircle(
+                color = darkBlue,
+                center = center,
+                radius = 50f,
+                fillFrac = 0.5f,
+                backgroundColor = paleGrey
+            )
         }
 
         // Date display in center (only show when not in settings)
