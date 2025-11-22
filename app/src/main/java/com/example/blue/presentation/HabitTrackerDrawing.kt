@@ -15,6 +15,8 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.asin
 import kotlin.math.sqrt
+import kotlin.math.min
+import kotlin.math.abs
 
 fun DrawScope.drawArcSegment(
     color: Color,
@@ -100,20 +102,99 @@ fun DrawScope.drawArcSegment(
     }
 }
 
+fun DrawScope.drawPartiallyFilledCircle(
+    color: Color,
+    center: Offset,
+    radius: Float,
+    fillFrac: Float,
+    backgroundColor: Color? = null,
+    maskCircleCenter: Offset? = null
+) {
+    // Draw background circle if specified
+    backgroundColor?.let {
+        drawCircle(
+            color = it,
+            radius = radius,
+            center = center
+        )
+    }
+
+    if (maskCircleCenter != null) {
+        // Curved fill using another circle as mask
+        // Calculate distance between centers
+        val d = sqrt(
+            (maskCircleCenter.x - center.x).pow(2) +
+                    (maskCircleCenter.y - center.y).pow(2)
+        )
+
+        // Calculate mask circle radius so it penetrates by fillFrac * diameter
+        // fillFrac=0: mask circle just touches edge (R2 = d - R1)
+        // fillFrac=0.5: mask circle passes through center (R2 = d)
+        // fillFrac=1.0: mask circle completely covers main circle (R2 = d + R1)
+        val maskRadius = d + radius * (2 * fillFrac - 1)
+
+        // Clip to the mask circle and draw the main circle
+        clipPath(
+            path = Path().apply {
+                addOval(
+                    Rect(
+                        left = maskCircleCenter.x - maskRadius,
+                        top = maskCircleCenter.y - maskRadius,
+                        right = maskCircleCenter.x + maskRadius,
+                        bottom = maskCircleCenter.y + maskRadius
+                    )
+                )
+            }
+        ) {
+            drawCircle(
+                color = color,
+                radius = radius,
+                center = center
+            )
+        }
+    } else {
+        // Original straight horizontal fill
+        // fillFrac=0 -> bottom of circle (cy + r)
+        // fillFrac=0.5 -> center (cy)
+        // fillFrac=1 -> top of circle (cy - r)
+        val fillHeight = 2 * radius * fillFrac
+        val clipBottom = center.y + radius
+        val clipTop = clipBottom - fillHeight
+
+        // Clip and draw the filled portion
+        clipRect(
+            left = center.x - radius,
+            top = clipTop,
+            right = center.x + radius,
+            bottom = clipBottom
+        ) {
+            drawCircle(
+                color = color,
+                radius = radius,
+                center = center
+            )
+        }
+    }
+}
+
+
 fun DrawScope.drawRoundedArcSegment(
     color: Color,
     center: Offset,
     startAngle: Float,
     sweepAngle: Float,
     innerRadius: Float,
-    outerRadius: Float
+    outerRadius: Float,
+    fillFrac: Float = 1.0f,
+    backColor: Color? = null
 ) {
     // Convert input angles from degrees to radians
     val startAngle_rad = Math.toRadians(startAngle.toDouble())
     val sweepAngle_rad = Math.toRadians(sweepAngle.toDouble())
 
-    val c_rad = (outerRadius - innerRadius) / 2
-    val cc_r = innerRadius + c_rad*2
+    val halfThickness = (outerRadius - innerRadius) / 2
+    val c_rad = halfThickness
+    val cc_r = innerRadius + halfThickness
 
     val delta_theta = 2 * asin(c_rad / (2 * cc_r))
 
@@ -126,19 +207,6 @@ fun DrawScope.drawRoundedArcSegment(
     val c2_x = center.x + cc_r * cos(theta_c2).toFloat()
     val c2_y = center.y + cc_r * sin(theta_c2).toFloat()
 
-    // Draw both circles with radius c_rad at the calculated centers
-    drawCircle(
-        color = color,
-        radius = c_rad,
-        center = Offset(c1_x, c1_y)
-    )
-
-    drawCircle(
-        color = color,
-        radius = c_rad,
-        center = Offset(c2_x, c2_y)
-    )
-
     val theta_c1_deg = Math.toDegrees(theta_c1).toFloat()
     val theta_c2_deg = Math.toDegrees(theta_c2).toFloat()
     val sweep_deg = theta_c2_deg - theta_c1_deg
@@ -149,9 +217,143 @@ fun DrawScope.drawRoundedArcSegment(
         startAngle = theta_c1_deg,
         sweepAngle = sweep_deg,
         innerRadius = innerRadius,
-        outerRadius = outerRadius
+        outerRadius = outerRadius,
+        fillFrac = fillFrac,
+        backColor = backColor
     )
+
+    // Draw both end cap circles with partial fill using curved mask
+    drawPartiallyFilledCircle(
+        color = color,
+        center = Offset(c1_x, c1_y),
+        radius = c_rad,
+        fillFrac = fillFrac,
+        backgroundColor = backColor,
+        maskCircleCenter = center
+    )
+
+    drawPartiallyFilledCircle(
+        color = color,
+        center = Offset(c2_x, c2_y),
+        radius = c_rad,
+        fillFrac = fillFrac,
+        backgroundColor = backColor,
+        maskCircleCenter = center
+    )
+
 }
+
+
+fun DrawScope.drawTriangularRoundedSegment(
+    color: Color,
+    center: Offset,
+    startAngle: Float,
+    sweepAngle: Float,
+    innerRadius: Float,
+    outerRadius: Float,
+    fillFrac: Float = 1.0f,
+    backColor: Color? = null
+) {
+    val startAngle_rad = Math.toRadians(startAngle.toDouble())
+    val sweepAngle_rad = Math.toRadians(sweepAngle.toDouble())
+
+    val r = innerRadius / (1 - 2*sin(abs(sweepAngle_rad)/4))
+
+    println(r)
+
+    val c_rad = (r - innerRadius).toFloat()
+
+    println(c_rad)
+
+
+    val theta_c_centre = startAngle_rad + sweepAngle_rad/2
+
+    val c_x = (center.x + r*cos(theta_c_centre)).toFloat()
+    val c_y = (center.y + r*sin(theta_c_centre)).toFloat()
+
+    drawPartiallyFilledCircle(
+        color = color,
+        center = Offset(c_x, c_y),
+        radius = c_rad,
+        fillFrac = fillFrac,
+        backgroundColor = backColor,
+        maskCircleCenter = center
+    )
+
+    val r_outer_inner = outerRadius - c_rad*2
+
+    drawRoundedArcSegment(
+        color,
+        center,
+        startAngle,
+        sweepAngle,
+        r_outer_inner,
+        outerRadius,
+        fillFrac,
+        backColor
+    )
+
+    val r_mid_outer = outerRadius - c_rad
+    val r_min_inner = innerRadius + c_rad
+
+    drawArcSegment(
+        color = color,
+        center = center,
+        startAngle = startAngle,
+        sweepAngle = sweepAngle,
+        innerRadius = r_min_inner,
+        outerRadius = r_mid_outer,
+        fillFrac = fillFrac,
+        backColor = backColor
+    )
+
+}
+
+fun DrawScope.drawAdaptiveRoundedSegment(
+    color: Color,
+    center: Offset,
+    startAngle: Float,
+    sweepAngle: Float,
+    innerRadius: Float,
+    outerRadius: Float,
+    fillFrac: Float = 1.0f,
+    backColor: Color? = null
+) {
+    // Convert input angles from degrees to radians
+    val startAngle_rad = Math.toRadians(startAngle.toDouble())
+    val sweepAngle_rad = Math.toRadians(sweepAngle.toDouble())
+
+    val halfThickness = (outerRadius - innerRadius) / 2
+    val cc_r = innerRadius + halfThickness
+
+    val max_c_rad = 2*cc_r*sin(abs(sweepAngle_rad)/4).toFloat()
+
+    if (halfThickness < max_c_rad) {
+        drawRoundedArcSegment(
+            color,
+            center,
+            startAngle,
+            sweepAngle,
+            innerRadius,
+            outerRadius,
+            fillFrac,
+            backColor
+        )
+    } else {
+        drawTriangularRoundedSegment(
+            color,
+            center,
+            startAngle,
+            sweepAngle,
+            innerRadius,
+            outerRadius,
+            fillFrac,
+            backColor
+        )
+    }
+
+}
+
 
 fun DrawScope.drawHabitTracker(
     center: Offset,
@@ -217,7 +419,7 @@ fun DrawScope.drawHabitTracker(
                     val notCompletedColor = if (isSelected) lightGreen else paleGrey
                     val fillFrac = completionCount.toFloat() / habit.completionsPerDay.toFloat()
 
-                    drawArcSegment(
+                    drawAdaptiveRoundedSegment(
                         color = completedColor,
                         center = effectiveCenter,
                         startAngle = dayStartAngle,
@@ -243,7 +445,7 @@ fun DrawScope.drawHabitTracker(
                         }
                     }
 
-                    drawArcSegment(
+                    drawAdaptiveRoundedSegment(
                         color = segmentColor,
                         center = effectiveCenter,
                         startAngle = dayStartAngle,
@@ -253,81 +455,6 @@ fun DrawScope.drawHabitTracker(
                     )
                 }
             }
-        }
-    }
-}
-
-fun DrawScope.drawPartiallyFilledCircle(
-    color: Color,
-    center: Offset,
-    radius: Float,
-    fillFrac: Float,
-    backgroundColor: Color? = null,
-    maskCircleCenter: Offset? = null
-) {
-    // Draw background circle if specified
-    backgroundColor?.let {
-        drawCircle(
-            color = it,
-            radius = radius,
-            center = center
-        )
-    }
-
-    if (maskCircleCenter != null) {
-        // Curved fill using another circle as mask
-        // Calculate distance between centers
-        val d = sqrt(
-            (maskCircleCenter.x - center.x).pow(2) +
-            (maskCircleCenter.y - center.y).pow(2)
-        )
-
-        // Calculate mask circle radius so it penetrates by fillFrac * diameter
-        // fillFrac=0: mask circle just touches edge (R2 = d - R1)
-        // fillFrac=0.5: mask circle passes through center (R2 = d)
-        // fillFrac=1.0: mask circle completely covers main circle (R2 = d + R1)
-        val maskRadius = d + radius * (2 * fillFrac - 1)
-
-        // Clip to the mask circle and draw the main circle
-        clipPath(
-            path = Path().apply {
-                addOval(
-                    Rect(
-                        left = maskCircleCenter.x - maskRadius,
-                        top = maskCircleCenter.y - maskRadius,
-                        right = maskCircleCenter.x + maskRadius,
-                        bottom = maskCircleCenter.y + maskRadius
-                    )
-                )
-            }
-        ) {
-            drawCircle(
-                color = color,
-                radius = radius,
-                center = center
-            )
-        }
-    } else {
-        // Original straight horizontal fill
-        // fillFrac=0 -> bottom of circle (cy + r)
-        // fillFrac=0.5 -> center (cy)
-        // fillFrac=1 -> top of circle (cy - r)
-        val fillHeight = 2 * radius * fillFrac
-        val clipBottom = center.y + radius
-        val clipTop = clipBottom - fillHeight
-
-        // Clip and draw the filled portion
-        clipRect(
-            left = center.x - radius,
-            top = clipTop,
-            right = center.x + radius,
-            bottom = clipBottom
-        ) {
-            drawCircle(
-                color = color,
-                radius = radius,
-                center = center
-            )
         }
     }
 }
