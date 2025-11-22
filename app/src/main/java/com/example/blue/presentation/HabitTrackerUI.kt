@@ -404,13 +404,14 @@ fun HabitTrackerDisplay(
                 selectedHabitIndex = selectedHabitIndex
             )
 
-            // TEST: Draw a 1/4 filled circle in the center
+            // TEST: Draw a 1/4 filled circle in the center with curved edge
             drawPartiallyFilledCircle(
                 color = darkBlue,
                 center = center,
                 radius = 50f,
                 fillFrac = 0.5f,
-                backgroundColor = paleGrey
+                backgroundColor = paleGrey,
+                maskCircleCenter = Offset(center.x + 100f, center.y)
             )
         }
 

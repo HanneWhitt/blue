@@ -2,14 +2,19 @@
 package com.example.blue.presentation
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import kotlin.math.cos
+import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.asin
+import kotlin.math.sqrt
 
 fun DrawScope.drawArcSegment(
     color: Color,
@@ -257,7 +262,8 @@ fun DrawScope.drawPartiallyFilledCircle(
     center: Offset,
     radius: Float,
     fillFrac: Float,
-    backgroundColor: Color? = null
+    backgroundColor: Color? = null,
+    maskCircleCenter: Offset? = null
 ) {
     // Draw background circle if specified
     backgroundColor?.let {
@@ -268,25 +274,60 @@ fun DrawScope.drawPartiallyFilledCircle(
         )
     }
 
-    // Calculate the y-position of the fill line
-    // fillFrac=0 -> bottom of circle (cy + r)
-    // fillFrac=0.5 -> center (cy)
-    // fillFrac=1 -> top of circle (cy - r)
-    val fillHeight = 2 * radius * fillFrac
-    val clipBottom = center.y + radius
-    val clipTop = clipBottom - fillHeight
-
-    // Clip and draw the filled portion
-    clipRect(
-        left = center.x - radius,
-        top = clipTop,
-        right = center.x + radius,
-        bottom = clipBottom
-    ) {
-        drawCircle(
-            color = color,
-            radius = radius,
-            center = center
+    if (maskCircleCenter != null) {
+        // Curved fill using another circle as mask
+        // Calculate distance between centers
+        val d = sqrt(
+            (maskCircleCenter.x - center.x).pow(2) +
+            (maskCircleCenter.y - center.y).pow(2)
         )
+
+        // Calculate mask circle radius so it penetrates by fillFrac * diameter
+        // fillFrac=0: mask circle just touches edge (R2 = d - R1)
+        // fillFrac=0.5: mask circle passes through center (R2 = d)
+        // fillFrac=1.0: mask circle completely covers main circle (R2 = d + R1)
+        val maskRadius = d + radius * (2 * fillFrac - 1)
+
+        // Clip to the mask circle and draw the main circle
+        clipPath(
+            path = Path().apply {
+                addOval(
+                    Rect(
+                        left = maskCircleCenter.x - maskRadius,
+                        top = maskCircleCenter.y - maskRadius,
+                        right = maskCircleCenter.x + maskRadius,
+                        bottom = maskCircleCenter.y + maskRadius
+                    )
+                )
+            }
+        ) {
+            drawCircle(
+                color = color,
+                radius = radius,
+                center = center
+            )
+        }
+    } else {
+        // Original straight horizontal fill
+        // fillFrac=0 -> bottom of circle (cy + r)
+        // fillFrac=0.5 -> center (cy)
+        // fillFrac=1 -> top of circle (cy - r)
+        val fillHeight = 2 * radius * fillFrac
+        val clipBottom = center.y + radius
+        val clipTop = clipBottom - fillHeight
+
+        // Clip and draw the filled portion
+        clipRect(
+            left = center.x - radius,
+            top = clipTop,
+            right = center.x + radius,
+            bottom = clipBottom
+        ) {
+            drawCircle(
+                color = color,
+                radius = radius,
+                center = center
+            )
+        }
     }
 }
