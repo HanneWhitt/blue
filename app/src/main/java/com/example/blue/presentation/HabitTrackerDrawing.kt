@@ -6,6 +6,84 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.asin
+
+fun DrawScope.drawArcSegment(
+    color: Color,
+    center: Offset,
+    startAngle: Float,
+    sweepAngle: Float,
+    innerRadius: Float,
+    outerRadius: Float
+) {
+    drawArc(
+        color = color,
+        startAngle = startAngle,
+        sweepAngle = sweepAngle,
+        useCenter = false,
+        topLeft = Offset(
+            center.x - outerRadius,
+            center.y - outerRadius
+        ),
+        size = Size(outerRadius * 2, outerRadius * 2),
+        style = Stroke(width = outerRadius - innerRadius)
+    )
+}
+
+fun DrawScope.drawRoundedArcSegment(
+    color: Color,
+    center: Offset,
+    startAngle: Float,
+    sweepAngle: Float,
+    innerRadius: Float,
+    outerRadius: Float
+) {
+    // Convert input angles from degrees to radians
+    val startAngle_rad = Math.toRadians(startAngle.toDouble())
+    val sweepAngle_rad = Math.toRadians(sweepAngle.toDouble())
+
+    val c_rad = (outerRadius - innerRadius) / 2
+    val cc_r = innerRadius + c_rad*2
+
+    val delta_theta = 2 * asin(c_rad / (2 * cc_r))
+
+    val theta_c1 = startAngle_rad - delta_theta
+    val theta_c2 = startAngle_rad + sweepAngle_rad + delta_theta
+
+    val c1_x = center.x + cc_r * cos(theta_c1).toFloat()
+    val c1_y = center.y + cc_r * sin(theta_c1).toFloat()
+
+    val c2_x = center.x + cc_r * cos(theta_c2).toFloat()
+    val c2_y = center.y + cc_r * sin(theta_c2).toFloat()
+
+    // Draw both circles with radius c_rad at the calculated centers
+    drawCircle(
+        color = color,
+        radius = c_rad,
+        center = Offset(c1_x, c1_y)
+    )
+
+    drawCircle(
+        color = color,
+        radius = c_rad,
+        center = Offset(c2_x, c2_y)
+    )
+
+    val theta_c1_deg = Math.toDegrees(theta_c1).toFloat()
+    val theta_c2_deg = Math.toDegrees(theta_c2).toFloat()
+    val sweep_deg = theta_c2_deg - theta_c1_deg
+
+    drawArcSegment(
+        color = color,
+        center = center,
+        startAngle = theta_c1_deg,
+        sweepAngle = sweep_deg,
+        innerRadius = innerRadius,
+        outerRadius = outerRadius
+    )
+}
 
 fun DrawScope.drawHabitTracker(
     center: Offset,
@@ -23,6 +101,8 @@ fun DrawScope.drawHabitTracker(
 ) {
     val numDays = 10
     val numHabits = habits.size
+    val radGapProportion = 0.8f
+    val angleGapCenterOffset = 0.3f
 
     // Arc configuration variables
     val startingAngle = -90f  // Start at 12 o'clock (vertical, top of screen)
@@ -34,11 +114,13 @@ fun DrawScope.drawHabitTracker(
     val availableRadius = maxRadius - innerMargin
     val habitLayerThickness = availableRadius / numHabits
 
+    val effectiveCenterOffsetRadius = innerMargin*angleGapCenterOffset
+
     // Draw each habit layer (habit 0 is innermost, highest index is outermost)
     habits.forEachIndexed { habitIndex, habit ->
         val reversedIndex = numHabits - 1 - habitIndex
         val outerRadius = maxRadius - (reversedIndex * habitLayerThickness)
-        val innerRadius = outerRadius - habitLayerThickness * 0.8f // Leave gap between layers
+        val innerRadius = outerRadius - habitLayerThickness * radGapProportion // Leave gap between layers
 
         // Draw each day segment for this habit
         for (dayIndex in 0 until numDays) {
@@ -68,18 +150,22 @@ fun DrawScope.drawHabitTracker(
                 }
             }
 
+            val effectiveCenterAngle = Math.toRadians((dayStartAngle - segmentAngle/2).toDouble())
+
+            val effectiveCenter_x = center.x + effectiveCenterOffsetRadius*cos(effectiveCenterAngle).toFloat()
+            val effectiveCenter_y = center.y + effectiveCenterOffsetRadius*sin(effectiveCenterAngle).toFloat()
+            val effectiveCenter = Offset(effectiveCenter_x, effectiveCenter_y)
+
+
+
             // Draw the arc segment
-            drawArc(
+            drawRoundedArcSegment(
                 color = segmentColor,
+                center = effectiveCenter,
                 startAngle = dayStartAngle,
-                sweepAngle = -segmentAngle + 2f, // Negative for anticlockwise, small gap between segments
-                useCenter = false,
-                topLeft = Offset(
-                    center.x - outerRadius,
-                    center.y - outerRadius
-                ),
-                size = Size(outerRadius * 2, outerRadius * 2),
-                style = Stroke(width = outerRadius - innerRadius)
+                sweepAngle = -segmentAngle, // Negative for anticlockwise, small gap between segments
+                innerRadius = innerRadius - effectiveCenterOffsetRadius,
+                outerRadius = outerRadius - effectiveCenterOffsetRadius
             )
         }
     }

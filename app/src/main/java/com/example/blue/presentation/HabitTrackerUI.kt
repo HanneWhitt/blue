@@ -348,7 +348,7 @@ fun HabitTrackerDisplay(
         // Habit abbreviation at top, right of center
         // Calculate position: vertically at middle of habit stack
         val stackRadiusDp = screenSize / 2 - outerMarginPx.dp - innerMarginPx.dp
-        val middleOfHabitStackDp = innerMarginPx.dp + stackRadiusDp / 2
+        val middleOfHabitStackDp = innerMarginPx.dp + (stackRadiusDp * (numHabits + 2) / (2 * numHabits))
         val habitTextYOffset = - middleOfHabitStackDp
         val habitTextXOffset = screenSize / 2 + 2.dp
 
