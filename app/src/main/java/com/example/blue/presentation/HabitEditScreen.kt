@@ -54,7 +54,7 @@ enum class HabitType {
 @Composable
 fun HabitEditScreen(
     existingHabit: Habit? = null,
-    onSave: (name: String, abbreviation: String, type: HabitType) -> Unit,
+    onSave: (name: String, abbreviation: String, type: HabitType, completionsPerDay: Int) -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
     val isEditMode = existingHabit != null
@@ -68,6 +68,14 @@ fun HabitEditScreen(
                 is Habit.TimeBasedHabit -> HabitType.TIME_BASED
                 is Habit.MultipleHabit -> HabitType.MULTIPLE
                 null -> HabitType.BINARY
+            }
+        )
+    }
+    var completionsPerDay by remember {
+        mutableStateOf(
+            when (existingHabit) {
+                is Habit.MultipleHabit -> existingHabit.completionsPerDay
+                else -> 3
             }
         )
     }
@@ -253,6 +261,29 @@ fun HabitEditScreen(
                 )
             }
 
+            // Completions per day (only show for Multiple type)
+            if (habitType == HabitType.MULTIPLE) {
+                item {
+                    Chip(
+                        label = {
+                            Text(
+                                text = "Per day: $completionsPerDay",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        onClick = {
+                            // Cycle through 1-5 completions per day
+                            completionsPerDay = if (completionsPerDay >= 5) 1 else completionsPerDay + 1
+                        },
+                        colors = ChipDefaults.secondaryChipColors(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
             // Save/Create button
             item {
                 Chip(
@@ -265,7 +296,7 @@ fun HabitEditScreen(
                     },
                     onClick = {
                         if (habitName.isNotEmpty() && habitAbbreviation.isNotEmpty()) {
-                            onSave(habitName, habitAbbreviation, habitType)
+                            onSave(habitName, habitAbbreviation, habitType, completionsPerDay)
                         }
                     },
                     colors = ChipDefaults.primaryChipColors(),

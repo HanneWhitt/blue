@@ -76,13 +76,13 @@ fun WearApp() {
 
                     HabitEditScreen(
                         existingHabit = existingHabit,
-                        onSave = { name, abbreviation, type ->
+                        onSave = { name, abbreviation, type, completionsPerDay ->
                             if (existingHabit != null) {
                                 // Update existing habit
-                                updateHabit(context, LocalDate.now(), 10, habitId, name, abbreviation, type)
+                                updateHabit(context, LocalDate.now(), 10, habitId, name, abbreviation, type, completionsPerDay)
                             } else {
                                 // Create new habit
-                                createHabit(context, LocalDate.now(), 10, name, abbreviation, type)
+                                createHabit(context, LocalDate.now(), 10, name, abbreviation, type, completionsPerDay)
                             }
                             navController.popBackStack()
                         },

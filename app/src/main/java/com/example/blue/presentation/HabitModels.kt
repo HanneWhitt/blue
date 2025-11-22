@@ -7,7 +7,8 @@ import androidx.compose.ui.graphics.Color
 data class HabitCompletion(
     val habitId: Int,
     val dayIndex: Int, // 0-9 for 10 days
-    val isCompleted: Boolean?  // null = no data, true = completed, false = not completed
+    val isCompleted: Boolean?,  // null = no data, true = completed, false = not completed (for Binary/Time-based habits)
+    val completionCount: Int? = null  // For Multiple habits - number of times completed
 )
 
 sealed class Habit {
@@ -33,7 +34,8 @@ sealed class Habit {
         override val id: Int,
         override val name: String,
         override val abbreviation: String,
-        val color: Color
+        val color: Color,
+        val completionsPerDay: Int = 3  // Default to 3 completions per day
     ) : Habit()
 }
 

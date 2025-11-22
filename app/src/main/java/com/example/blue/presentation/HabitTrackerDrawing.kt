@@ -16,20 +16,82 @@ fun DrawScope.drawArcSegment(
     startAngle: Float,
     sweepAngle: Float,
     innerRadius: Float,
-    outerRadius: Float
+    outerRadius: Float,
+    fillFrac: Float = 1.0f,
+    backColor: Color? = null
 ) {
-    drawArc(
-        color = color,
-        startAngle = startAngle,
-        sweepAngle = sweepAngle,
-        useCenter = false,
-        topLeft = Offset(
-            center.x - outerRadius,
-            center.y - outerRadius
-        ),
-        size = Size(outerRadius * 2, outerRadius * 2),
-        style = Stroke(width = outerRadius - innerRadius)
-    )
+    val thickness = outerRadius - innerRadius
+    // Stroke is centered on path, so use midpoint between inner and outer radii
+    val midRadius = (innerRadius + outerRadius) / 2
+
+    when {
+        fillFrac >= 1.0f -> {
+            // Full segment in main color
+            drawArc(
+                color = color,
+                startAngle = startAngle,
+                sweepAngle = sweepAngle,
+                useCenter = false,
+                topLeft = Offset(
+                    center.x - midRadius,
+                    center.y - midRadius
+                ),
+                size = Size(midRadius * 2, midRadius * 2),
+                style = Stroke(width = thickness)
+            )
+        }
+        fillFrac <= 0.0f && backColor != null -> {
+            // Full segment in background color
+            drawArc(
+                color = backColor,
+                startAngle = startAngle,
+                sweepAngle = sweepAngle,
+                useCenter = false,
+                topLeft = Offset(
+                    center.x - midRadius,
+                    center.y - midRadius
+                ),
+                size = Size(midRadius * 2, midRadius * 2),
+                style = Stroke(width = thickness)
+            )
+        }
+        else -> {
+            // Partial fill: draw background then partial foreground
+            if (backColor != null) {
+                // Draw full background segment
+                drawArc(
+                    color = backColor,
+                    startAngle = startAngle,
+                    sweepAngle = sweepAngle,
+                    useCenter = false,
+                    topLeft = Offset(
+                        center.x - midRadius,
+                        center.y - midRadius
+                    ),
+                    size = Size(midRadius * 2, midRadius * 2),
+                    style = Stroke(width = thickness)
+                )
+            }
+
+            // Draw partial foreground segment (from inner to fillFrac of thickness)
+            val partialOuterRadius = innerRadius + (thickness * fillFrac)
+            val partialStrokeWidth = partialOuterRadius - innerRadius
+            val partialMidRadius = (innerRadius + partialOuterRadius) / 2
+
+            drawArc(
+                color = color,
+                startAngle = startAngle,
+                sweepAngle = sweepAngle,
+                useCenter = false,
+                topLeft = Offset(
+                    center.x - partialMidRadius,
+                    center.y - partialMidRadius
+                ),
+                size = Size(partialMidRadius * 2, partialMidRadius * 2),
+                style = Stroke(width = partialStrokeWidth)
+            )
+        }
+    }
 }
 
 fun DrawScope.drawRoundedArcSegment(
@@ -135,38 +197,56 @@ fun DrawScope.drawHabitTracker(
             // Check if this is the selected segment
             val isSelected = (habitIndex == selectedHabitIndex && dayIndex == selectedDayIndex)
 
-            val segmentColor = if (isSelected) {
-                // Selected segment uses green colors
-                when (completion?.isCompleted) {
-                    true -> darkGreen     // Completed - dark green
-                    else -> lightGreen    // No data or not completed - light green
-                }
-            } else {
-                // Non-selected segments use original blue/grey colors
-                when (completion?.isCompleted) {
-                    null -> paleGrey      // No data - pale grey
-                    true -> darkBlue      // Completed - dark blue
-                    false -> paleBlue     // Not completed - pale blue
-                }
-            }
-
             val effectiveCenterAngle = Math.toRadians((dayStartAngle - segmentAngle/2).toDouble())
 
             val effectiveCenter_x = center.x + effectiveCenterOffsetRadius*cos(effectiveCenterAngle).toFloat()
             val effectiveCenter_y = center.y + effectiveCenterOffsetRadius*sin(effectiveCenterAngle).toFloat()
             val effectiveCenter = Offset(effectiveCenter_x, effectiveCenter_y)
 
+            // Draw based on habit type
+            when (habit) {
+                is Habit.MultipleHabit -> {
+                    val completionCount = completion?.completionCount ?: 0
+                    val completedColor = if (isSelected) darkGreen else darkBlue
+                    val notCompletedColor = if (isSelected) lightGreen else paleGrey
+                    val fillFrac = completionCount.toFloat() / habit.completionsPerDay.toFloat()
 
+                    drawArcSegment(
+                        color = completedColor,
+                        center = effectiveCenter,
+                        startAngle = dayStartAngle,
+                        sweepAngle = -segmentAngle,
+                        innerRadius = innerRadius - effectiveCenterOffsetRadius,
+                        outerRadius = outerRadius - effectiveCenterOffsetRadius,
+                        fillFrac = fillFrac,
+                        backColor = notCompletedColor
+                    )
+                }
+                else -> {
+                    // Binary and Time-based habits use existing logic
+                    val segmentColor = if (isSelected) {
+                        when (completion?.isCompleted) {
+                            true -> darkGreen
+                            else -> lightGreen
+                        }
+                    } else {
+                        when (completion?.isCompleted) {
+                            null -> paleGrey
+                            true -> darkBlue
+                            false -> paleBlue
+                        }
+                    }
 
-            // Draw the arc segment
-            drawRoundedArcSegment(
-                color = segmentColor,
-                center = effectiveCenter,
-                startAngle = dayStartAngle,
-                sweepAngle = -segmentAngle, // Negative for anticlockwise, small gap between segments
-                innerRadius = innerRadius - effectiveCenterOffsetRadius,
-                outerRadius = outerRadius - effectiveCenterOffsetRadius
-            )
+                    drawArcSegment(
+                        color = segmentColor,
+                        center = effectiveCenter,
+                        startAngle = dayStartAngle,
+                        sweepAngle = -segmentAngle,
+                        innerRadius = innerRadius - effectiveCenterOffsetRadius,
+                        outerRadius = outerRadius - effectiveCenterOffsetRadius
+                    )
+                }
+            }
         }
     }
 }

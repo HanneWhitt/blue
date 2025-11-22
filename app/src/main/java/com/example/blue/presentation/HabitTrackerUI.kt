@@ -54,7 +54,7 @@ fun HabitTrackerDisplay(
     } }
 
     // Spacing configuration variables
-    val outerMarginPx = 30f      // Distance from screen edge to outer habit layer
+    val outerMarginPx = 10f      // Distance from screen edge to outer habit layer
     val innerMarginPx = 40f      // Distance from screen center to inner habit layer
 
     // Define your three colors
@@ -266,10 +266,82 @@ fun HabitTrackerDisplay(
                                     // Check if habit type is implemented
                                     when (selectedHabit) {
                                         is Habit.TimeBasedHabit -> {
-                                            throw NotImplementedError("Time-based habit completion not yet implemented")
+                                            // Temporarily treat like Binary habit until time-based is fully implemented
+                                            val existingCompletion = completions.find {
+                                                it.habitId == selectedHabit.id && it.dayIndex == selectedDayIndex
+                                            }
+
+                                            val newCompletions = completions.toMutableList()
+                                            if (existingCompletion != null) {
+                                                newCompletions.remove(existingCompletion)
+                                                val newStatus = when (existingCompletion.isCompleted) {
+                                                    true -> false    // Completed -> Not completed
+                                                    else -> true     // No data or not completed -> Completed
+                                                }
+
+                                                if (newStatus == true) {
+                                                    vibrate(context)
+                                                }
+
+                                                newCompletions.add(
+                                                    existingCompletion.copy(isCompleted = newStatus)
+                                                )
+                                            } else {
+                                                vibrate(context)
+                                                newCompletions.add(
+                                                    HabitCompletion(
+                                                        habitId = selectedHabit.id,
+                                                        dayIndex = selectedDayIndex,
+                                                        isCompleted = true
+                                                    )
+                                                )
+                                            }
+                                            completions = newCompletions
                                         }
                                         is Habit.MultipleHabit -> {
-                                            throw NotImplementedError("Multiple habit completion not yet implemented")
+                                            // Find existing completion
+                                            val existingCompletion = completions.find {
+                                                it.habitId == selectedHabit.id && it.dayIndex == selectedDayIndex
+                                            }
+
+                                            // Cycle through completion counts
+                                            val newCompletions = completions.toMutableList()
+                                            if (existingCompletion != null) {
+                                                newCompletions.remove(existingCompletion)
+                                                val currentCount = existingCompletion.completionCount ?: 0
+                                                val newCount = if (currentCount >= selectedHabit.completionsPerDay) {
+                                                    0  // Reset to 0 (empty)
+                                                } else {
+                                                    currentCount + 1  // Increment
+                                                }
+
+                                                // Only vibrate when incrementing (not when resetting to 0)
+                                                if (newCount > 0) {
+                                                    vibrate(context)
+                                                }
+
+                                                // Only add entry if count > 0
+                                                if (newCount > 0) {
+                                                    newCompletions.add(
+                                                        existingCompletion.copy(
+                                                            isCompleted = null,  // Not used for Multiple habits
+                                                            completionCount = newCount
+                                                        )
+                                                    )
+                                                }
+                                            } else {
+                                                // No existing entry, create new one with count 1
+                                                vibrate(context)
+                                                newCompletions.add(
+                                                    HabitCompletion(
+                                                        habitId = selectedHabit.id,
+                                                        dayIndex = selectedDayIndex,
+                                                        isCompleted = null,  // Not used for Multiple habits
+                                                        completionCount = 1
+                                                    )
+                                                )
+                                            }
+                                            completions = newCompletions
                                         }
                                         is Habit.BinaryHabit -> {
                                             // Find existing completion
@@ -346,10 +418,36 @@ fun HabitTrackerDisplay(
         }
 
         // Habit abbreviation at top, right of center
-        // Calculate position: vertically at middle of habit stack
-        val stackRadiusDp = screenSize / 2 - outerMarginPx.dp - innerMarginPx.dp
-        val middleOfHabitStackDp = innerMarginPx.dp + (stackRadiusDp * (numHabits + 2) / (2 * numHabits))
-        val habitTextYOffset = - middleOfHabitStackDp
+        // Calculate position: vertically aligned with middle of habit stack
+        val numHabits = habitData.habits.size
+        val maxRadius = screenSize / 2 - outerMarginPx.dp
+        val innerMargin = innerMarginPx.dp
+        val availableRadius = maxRadius - innerMargin
+        val habitLayerThickness = if (numHabits > 0) availableRadius / numHabits else 0.dp
+        val radGapProportion = 0.8f
+
+        val habitTextYOffset = if (numHabits > 0) {
+            if (numHabits % 2 == 1) {
+                // Odd number: align with center of middle habit
+                val middleIndex = numHabits / 2
+                val reversedIndex = numHabits - 1 - middleIndex
+                val outerRadius = maxRadius - habitLayerThickness * reversedIndex
+                val innerRadius = outerRadius - habitLayerThickness * radGapProportion
+                -(outerRadius + innerRadius) / 2
+            } else {
+                // Even number: align with gap between middle two habits
+                val lowerMiddleIndex = numHabits / 2 - 1
+                val upperMiddleIndex = numHabits / 2
+                val reversedIndexLower = numHabits - 1 - lowerMiddleIndex
+                val reversedIndexUpper = numHabits - 1 - upperMiddleIndex
+                val outerRadiusLower = maxRadius - habitLayerThickness * reversedIndexLower
+                val outerRadiusUpper = maxRadius - habitLayerThickness * reversedIndexUpper
+                val innerRadiusUpper = outerRadiusUpper - habitLayerThickness * radGapProportion
+                -(outerRadiusLower + innerRadiusUpper) / 2
+            }
+        } else {
+            0.dp
+        }
         val habitTextXOffset = screenSize / 2 + 2.dp
 
         if (selectedHabitIndex >= 0) {

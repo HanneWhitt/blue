@@ -79,12 +79,14 @@ fun parseHabitDataJson(jsonString: String, currentDate: LocalDate, numDays: Int)
             "Multiple" -> {
                 val colorHex = habitJson.getString("colorHex")
                 val color = Color(android.graphics.Color.parseColor(colorHex))
+                val completionsPerDay = habitJson.optInt("completionsPerDay", 3)  // Default to 3
                 habits.add(
                     Habit.MultipleHabit(
                         id = habitId,
                         name = name,
                         abbreviation = abbreviation,
-                        color = color
+                        color = color,
+                        completionsPerDay = completionsPerDay
                     )
                 )
             }
@@ -122,12 +124,18 @@ fun parseHabitDataJson(jsonString: String, currentDate: LocalDate, numDays: Int)
                 } else {
                     dateData.getBoolean("iscompleted")
                 }
+                val completionCount = if (dateData.has("completionCount")) {
+                    dateData.getInt("completionCount")
+                } else {
+                    null
+                }
 
                 completions.add(
                     HabitCompletion(
                         habitId = habitId,
                         dayIndex = dayIndex,
-                        isCompleted = isCompleted
+                        isCompleted = isCompleted,
+                        completionCount = completionCount
                     )
                 )
             }
@@ -179,6 +187,7 @@ fun saveHabitDataToFile(context: Context, habitData: HabitData, currentDate: Loc
                 is Habit.MultipleHabit -> {
                     habitJson.put("type", "Multiple")
                     habitJson.put("colorHex", "#1565C0")
+                    habitJson.put("completionsPerDay", habit.completionsPerDay)
                 }
             }
 
@@ -222,6 +231,10 @@ fun saveHabitDataToFile(context: Context, habitData: HabitData, currentDate: Loc
                         dateData.put("iscompleted", JSONObject.NULL)
                     }
 
+                    if (completion.completionCount != null) {
+                        dateData.put("completionCount", completion.completionCount)
+                    }
+
                     // This will add new dates or update existing ones
                     habitDatesObject.put(dateString, dateData)
                 }
@@ -250,7 +263,8 @@ fun createHabit(
     numDays: Int,
     name: String,
     abbreviation: String,
-    type: HabitType
+    type: HabitType,
+    completionsPerDay: Int = 3
 ): HabitData {
     val habitData = loadHabitData(context, currentDate, numDays)
 
@@ -266,7 +280,7 @@ fun createHabit(
     val newHabit = when (type) {
         HabitType.BINARY -> Habit.BinaryHabit(nextId, name, abbreviation, color)
         HabitType.TIME_BASED -> Habit.TimeBasedHabit(nextId, name, abbreviation, color)
-        HabitType.MULTIPLE -> Habit.MultipleHabit(nextId, name, abbreviation, color)
+        HabitType.MULTIPLE -> Habit.MultipleHabit(nextId, name, abbreviation, color, completionsPerDay)
     }
 
     // Add new habit to the list
@@ -286,7 +300,8 @@ fun updateHabit(
     habitId: Int,
     name: String,
     abbreviation: String,
-    type: HabitType
+    type: HabitType,
+    completionsPerDay: Int = 3
 ): HabitData {
     val habitData = loadHabitData(context, currentDate, numDays)
 
@@ -297,7 +312,7 @@ fun updateHabit(
             when (type) {
                 HabitType.BINARY -> Habit.BinaryHabit(habitId, name, abbreviation, color)
                 HabitType.TIME_BASED -> Habit.TimeBasedHabit(habitId, name, abbreviation, color)
-                HabitType.MULTIPLE -> Habit.MultipleHabit(habitId, name, abbreviation, color)
+                HabitType.MULTIPLE -> Habit.MultipleHabit(habitId, name, abbreviation, color, completionsPerDay)
             }
         } else {
             habit
