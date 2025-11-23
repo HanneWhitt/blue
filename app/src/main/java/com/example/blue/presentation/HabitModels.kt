@@ -8,7 +8,8 @@ data class HabitCompletion(
     val habitId: Int,
     val dayIndex: Int, // 0-9 for 10 days
     val isCompleted: Boolean?,  // null = no data, true = completed, false = not completed (for Binary/Time-based habits)
-    val completionCount: Int? = null  // For Multiple habits - number of times completed
+    val completionCount: Int? = null,  // For Multiple habits - number of times completed
+    val completionTime: String? = null  // For Time-based habits - time when completed (HH:mm format)
 )
 
 sealed class Habit {
@@ -27,7 +28,8 @@ sealed class Habit {
         override val id: Int,
         override val name: String,
         override val abbreviation: String,
-        val color: Color
+        val color: Color,
+        val targetTime: String = "12:00"  // Target time in HH:mm format
     ) : Habit()
 
     data class MultipleHabit(

@@ -430,8 +430,37 @@ fun DrawScope.drawHabitTracker(
                         backColor = notCompletedColor
                     )
                 }
-                else -> {
-                    // Binary and Time-based habits use existing logic
+                is Habit.TimeBasedHabit -> {
+                    // Time-based habits: color based on completion time vs target time
+                    val segmentColor = if (completion?.completionTime != null) {
+                        // Has a completion time recorded
+                        val completionTime = completion.completionTime
+                        val targetTime = habit.targetTime
+
+                        // Compare times (HH:mm format)
+                        val isOnTime = completionTime <= targetTime
+
+                        if (isSelected) {
+                            if (isOnTime) darkGreen else lightGreen
+                        } else {
+                            if (isOnTime) darkBlue else paleBlue
+                        }
+                    } else {
+                        // No completion time recorded
+                        if (isSelected) lightGreen else paleGrey
+                    }
+
+                    drawAdaptiveRoundedSegment(
+                        color = segmentColor,
+                        center = effectiveCenter,
+                        startAngle = dayStartAngle,
+                        sweepAngle = -segmentAngle,
+                        innerRadius = innerRadius - effectiveCenterOffsetRadius,
+                        outerRadius = outerRadius - effectiveCenterOffsetRadius
+                    )
+                }
+                is Habit.BinaryHabit -> {
+                    // Binary habits use isCompleted flag
                     val segmentColor = if (isSelected) {
                         when (completion?.isCompleted) {
                             true -> darkGreen

@@ -31,7 +31,8 @@ import java.util.Locale
 
 @Composable
 fun HabitTrackerDisplay(
-    onNavigateToManagement: () -> Unit = {}
+    onNavigateToManagement: () -> Unit = {},
+    onNavigateToTimeEntry: (habitId: Int, dayIndex: Int) -> Unit = { _, _ -> }
 ) {
     // Current date tracking
     var currentDate by remember { mutableStateOf(LocalDate.now()) }
@@ -266,37 +267,9 @@ fun HabitTrackerDisplay(
                                     // Check if habit type is implemented
                                     when (selectedHabit) {
                                         is Habit.TimeBasedHabit -> {
-                                            // Temporarily treat like Binary habit until time-based is fully implemented
-                                            val existingCompletion = completions.find {
-                                                it.habitId == selectedHabit.id && it.dayIndex == selectedDayIndex
-                                            }
-
-                                            val newCompletions = completions.toMutableList()
-                                            if (existingCompletion != null) {
-                                                newCompletions.remove(existingCompletion)
-                                                val newStatus = when (existingCompletion.isCompleted) {
-                                                    true -> false    // Completed -> Not completed
-                                                    else -> true     // No data or not completed -> Completed
-                                                }
-
-                                                if (newStatus == true) {
-                                                    vibrate(context)
-                                                }
-
-                                                newCompletions.add(
-                                                    existingCompletion.copy(isCompleted = newStatus)
-                                                )
-                                            } else {
-                                                vibrate(context)
-                                                newCompletions.add(
-                                                    HabitCompletion(
-                                                        habitId = selectedHabit.id,
-                                                        dayIndex = selectedDayIndex,
-                                                        isCompleted = true
-                                                    )
-                                                )
-                                            }
-                                            completions = newCompletions
+                                            // Navigate to time entry screen for time-based habits
+                                            vibrate(context)
+                                            onNavigateToTimeEntry(selectedHabit.id, selectedDayIndex)
                                         }
                                         is Habit.MultipleHabit -> {
                                             // Find existing completion

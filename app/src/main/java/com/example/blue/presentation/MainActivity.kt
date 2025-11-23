@@ -45,7 +45,10 @@ fun WearApp() {
             ) {
                 composable("tracker") {
                     HabitTrackerDisplay(
-                        onNavigateToManagement = { navController.navigate("manage") }
+                        onNavigateToManagement = { navController.navigate("manage") },
+                        onNavigateToTimeEntry = { habitId, dayIndex ->
+                            navController.navigate("time-entry/$habitId/$dayIndex")
+                        }
                     )
                 }
 
@@ -76,13 +79,13 @@ fun WearApp() {
 
                     HabitEditScreen(
                         existingHabit = existingHabit,
-                        onSave = { name, abbreviation, type, completionsPerDay ->
+                        onSave = { name, abbreviation, type, completionsPerDay, targetTime ->
                             if (existingHabit != null) {
                                 // Update existing habit
-                                updateHabit(context, LocalDate.now(), 10, habitId, name, abbreviation, type, completionsPerDay)
+                                updateHabit(context, LocalDate.now(), 10, habitId, name, abbreviation, type, completionsPerDay, targetTime)
                             } else {
                                 // Create new habit
-                                createHabit(context, LocalDate.now(), 10, name, abbreviation, type, completionsPerDay)
+                                createHabit(context, LocalDate.now(), 10, name, abbreviation, type, completionsPerDay, targetTime)
                             }
                             navController.popBackStack()
                         },
@@ -95,6 +98,52 @@ fun WearApp() {
                             null
                         }
                     )
+                }
+
+                composable("time-entry/{habitId}/{dayIndex}") { backStackEntry ->
+                    val habitIdString = backStackEntry.arguments?.getString("habitId") ?: "0"
+                    val dayIndexString = backStackEntry.arguments?.getString("dayIndex") ?: "0"
+                    val habitId = habitIdString.toIntOrNull() ?: 0
+                    val dayIndex = dayIndexString.toIntOrNull() ?: 0
+
+                    val habitData = loadHabitData(context, LocalDate.now(), 10)
+                    val habit = habitData.habits.find { it.id == habitId }
+                    val currentCompletion = habitData.completions.find {
+                        it.habitId == habitId && it.dayIndex == dayIndex
+                    }
+
+                    if (habit != null) {
+                        TimeEntryScreen(
+                            habit = habit,
+                            dayIndex = dayIndex,
+                            currentCompletionTime = currentCompletion?.completionTime,
+                            onTimeSaved = { time ->
+                                // Save the completion with time
+                                val updatedCompletions = habitData.completions.toMutableList()
+                                val existingIndex = updatedCompletions.indexOfFirst {
+                                    it.habitId == habitId && it.dayIndex == dayIndex
+                                }
+
+                                val newCompletion = HabitCompletion(
+                                    habitId = habitId,
+                                    dayIndex = dayIndex,
+                                    isCompleted = true,
+                                    completionTime = time
+                                )
+
+                                if (existingIndex >= 0) {
+                                    updatedCompletions[existingIndex] = newCompletion
+                                } else {
+                                    updatedCompletions.add(newCompletion)
+                                }
+
+                                val updatedHabitData = HabitData(habitData.habits, updatedCompletions)
+                                saveHabitDataToFile(context, updatedHabitData, LocalDate.now(), 10)
+
+                                navController.popBackStack()
+                            }
+                        )
+                    }
                 }
             }
         }

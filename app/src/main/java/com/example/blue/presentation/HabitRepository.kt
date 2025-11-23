@@ -67,12 +67,14 @@ fun parseHabitDataJson(jsonString: String, currentDate: LocalDate, numDays: Int)
             "Time-based" -> {
                 val colorHex = habitJson.getString("colorHex")
                 val color = Color(android.graphics.Color.parseColor(colorHex))
+                val targetTime = habitJson.optString("targetTime", "12:00")
                 habits.add(
                     Habit.TimeBasedHabit(
                         id = habitId,
                         name = name,
                         abbreviation = abbreviation,
-                        color = color
+                        color = color,
+                        targetTime = targetTime
                     )
                 )
             }
@@ -129,13 +131,19 @@ fun parseHabitDataJson(jsonString: String, currentDate: LocalDate, numDays: Int)
                 } else {
                     null
                 }
+                val completionTime = if (dateData.has("completionTime")) {
+                    dateData.getString("completionTime")
+                } else {
+                    null
+                }
 
                 completions.add(
                     HabitCompletion(
                         habitId = habitId,
                         dayIndex = dayIndex,
                         isCompleted = isCompleted,
-                        completionCount = completionCount
+                        completionCount = completionCount,
+                        completionTime = completionTime
                     )
                 )
             }
@@ -183,6 +191,7 @@ fun saveHabitDataToFile(context: Context, habitData: HabitData, currentDate: Loc
                 is Habit.TimeBasedHabit -> {
                     habitJson.put("type", "Time-based")
                     habitJson.put("colorHex", "#1565C0")
+                    habitJson.put("targetTime", habit.targetTime)
                 }
                 is Habit.MultipleHabit -> {
                     habitJson.put("type", "Multiple")
@@ -235,6 +244,10 @@ fun saveHabitDataToFile(context: Context, habitData: HabitData, currentDate: Loc
                         dateData.put("completionCount", completion.completionCount)
                     }
 
+                    if (completion.completionTime != null) {
+                        dateData.put("completionTime", completion.completionTime)
+                    }
+
                     // This will add new dates or update existing ones
                     habitDatesObject.put(dateString, dateData)
                 }
@@ -264,7 +277,8 @@ fun createHabit(
     name: String,
     abbreviation: String,
     type: HabitType,
-    completionsPerDay: Int = 3
+    completionsPerDay: Int = 3,
+    targetTime: String = "12:00"
 ): HabitData {
     val habitData = loadHabitData(context, currentDate, numDays)
 
@@ -279,7 +293,7 @@ fun createHabit(
     val color = Color(android.graphics.Color.parseColor("#1565C0"))
     val newHabit = when (type) {
         HabitType.BINARY -> Habit.BinaryHabit(nextId, name, abbreviation, color)
-        HabitType.TIME_BASED -> Habit.TimeBasedHabit(nextId, name, abbreviation, color)
+        HabitType.TIME_BASED -> Habit.TimeBasedHabit(nextId, name, abbreviation, color, targetTime)
         HabitType.MULTIPLE -> Habit.MultipleHabit(nextId, name, abbreviation, color, completionsPerDay)
     }
 
@@ -301,7 +315,8 @@ fun updateHabit(
     name: String,
     abbreviation: String,
     type: HabitType,
-    completionsPerDay: Int = 3
+    completionsPerDay: Int = 3,
+    targetTime: String = "12:00"
 ): HabitData {
     val habitData = loadHabitData(context, currentDate, numDays)
 
@@ -311,7 +326,7 @@ fun updateHabit(
         if (habit.id == habitId) {
             when (type) {
                 HabitType.BINARY -> Habit.BinaryHabit(habitId, name, abbreviation, color)
-                HabitType.TIME_BASED -> Habit.TimeBasedHabit(habitId, name, abbreviation, color)
+                HabitType.TIME_BASED -> Habit.TimeBasedHabit(habitId, name, abbreviation, color, targetTime)
                 HabitType.MULTIPLE -> Habit.MultipleHabit(habitId, name, abbreviation, color, completionsPerDay)
             }
         } else {

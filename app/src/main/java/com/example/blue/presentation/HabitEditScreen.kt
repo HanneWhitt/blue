@@ -6,10 +6,9 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
@@ -54,7 +53,7 @@ enum class HabitType {
 @Composable
 fun HabitEditScreen(
     existingHabit: Habit? = null,
-    onSave: (name: String, abbreviation: String, type: HabitType, completionsPerDay: Int) -> Unit,
+    onSave: (name: String, abbreviation: String, type: HabitType, completionsPerDay: Int, targetTime: String) -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
     val isEditMode = existingHabit != null
@@ -79,7 +78,16 @@ fun HabitEditScreen(
             }
         )
     }
+    var targetTime by remember {
+        mutableStateOf(
+            when (existingHabit) {
+                is Habit.TimeBasedHabit -> existingHabit.targetTime
+                else -> "12:00"
+            }
+        )
+    }
     var showTypeSelector by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
 
     // Remote input launcher for habit name
     val nameInputLauncher = rememberLauncherForActivityResult(
@@ -103,7 +111,96 @@ fun HabitEditScreen(
         }
     }
 
-    if (showTypeSelector) {
+    if (showTimePicker) {
+        // Time picker screen for target time using Picker components
+        val timeParts = targetTime.split(":")
+
+        val hourState = rememberPickerState(
+            initialNumberOfOptions = 24,
+            initiallySelectedOption = timeParts[0].toInt()
+        )
+
+        val minuteState = rememberPickerState(
+            initialNumberOfOptions = 60,
+            initiallySelectedOption = timeParts[1].toInt()
+        )
+
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Set Target Time",
+                    style = MaterialTheme.typography.caption1,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    // Hour picker
+                    Picker(
+                        state = hourState,
+                        modifier = Modifier
+                            .size(48.dp, 100.dp)
+                            .weight(1f)
+                    ) { hour ->
+                        Text(
+                            text = String.format("%02d", hour),
+                            style = MaterialTheme.typography.display3,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    Text(
+                        text = ":",
+                        style = MaterialTheme.typography.display3,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+
+                    // Minute picker
+                    Picker(
+                        state = minuteState,
+                        modifier = Modifier
+                            .size(48.dp, 100.dp)
+                            .weight(1f)
+                    ) { minute ->
+                        Text(
+                            text = String.format("%02d", minute),
+                            style = MaterialTheme.typography.display3,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Done button
+                Button(
+                    onClick = {
+                        targetTime = String.format(
+                            "%02d:%02d",
+                            hourState.selectedOption,
+                            minuteState.selectedOption
+                        )
+                        showTimePicker = false
+                    }
+                ) {
+                    Text("✓")
+                }
+            }
+        }
+    } else if (showTypeSelector) {
         // Type selector screen
         ScalingLazyColumn(
             modifier = Modifier.fillMaxSize()
@@ -261,6 +358,28 @@ fun HabitEditScreen(
                 )
             }
 
+            // Target time (only show for Time-based type)
+            if (habitType == HabitType.TIME_BASED) {
+                item {
+                    Chip(
+                        label = {
+                            Text(
+                                text = "Target: $targetTime",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        onClick = {
+                            showTimePicker = true
+                        },
+                        colors = ChipDefaults.secondaryChipColors(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
             // Completions per day (only show for Multiple type)
             if (habitType == HabitType.MULTIPLE) {
                 item {
@@ -296,7 +415,7 @@ fun HabitEditScreen(
                     },
                     onClick = {
                         if (habitName.isNotEmpty() && habitAbbreviation.isNotEmpty()) {
-                            onSave(habitName, habitAbbreviation, habitType, completionsPerDay)
+                            onSave(habitName, habitAbbreviation, habitType, completionsPerDay, targetTime)
                         }
                     },
                     colors = ChipDefaults.primaryChipColors(),
