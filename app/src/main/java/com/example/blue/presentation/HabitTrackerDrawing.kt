@@ -10,6 +10,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
@@ -458,6 +460,53 @@ fun DrawScope.drawHabitTracker(
                         innerRadius = innerRadius - effectiveCenterOffsetRadius,
                         outerRadius = outerRadius - effectiveCenterOffsetRadius
                     )
+
+                    // Draw completion time text if this habit is selected and has a time
+                    if (habitIndex == selectedHabitIndex && completion?.completionTime != null) {
+                        val time = completion.completionTime
+                        val midAngle = dayStartAngle - (segmentAngle / 2f)
+                        val angleRad = Math.toRadians(midAngle.toDouble())
+                        val midRadius = ((innerRadius + outerRadius) / 2f)
+
+                        // Calculate text rotation (perpendicular to radial line)
+                        var textRotation = midAngle + 90f
+                        // Normalize angle to 0-360 range
+                        textRotation = ((textRotation % 360f) + 360f) % 360f
+                        // Flip text 180° if it's upside down (bottom half of screen)
+                        if (textRotation > 90f && textRotation < 270f) {
+                            textRotation += 180f
+                        }
+
+                        drawIntoCanvas { canvas ->
+                            val paint = android.graphics.Paint().apply {
+                                color = android.graphics.Color.BLACK
+                                textSize = 14f
+                                textAlign = android.graphics.Paint.Align.CENTER
+                            }
+
+                            // Position at center of segment
+                            val centerX = center.x + midRadius * cos(angleRad).toFloat()
+                            val centerY = center.y + midRadius * sin(angleRad).toFloat()
+
+                            // Debug: Draw small circle at text anchor point
+                            drawCircle(
+                                color = Color.Red,
+                                radius = 3f,
+                                center = Offset(centerX, centerY)
+                            )
+
+                            // Calculate offset to center text vertically at this point
+                            val fontMetrics = paint.fontMetrics
+                            val verticalCenter = (fontMetrics.ascent + fontMetrics.descent) / 2f
+
+                            // Save canvas state, rotate around the center point, draw text with offset, restore
+                            canvas.nativeCanvas.save()
+                            canvas.nativeCanvas.rotate(textRotation, centerX, centerY)
+                            // Draw text with y-offset so vertical center is at centerY
+                            canvas.nativeCanvas.drawText(time, centerX, centerY - verticalCenter, paint)
+                            canvas.nativeCanvas.restore()
+                        }
+                    }
                 }
                 is Habit.BinaryHabit -> {
                     // Binary habits use isCompleted flag
