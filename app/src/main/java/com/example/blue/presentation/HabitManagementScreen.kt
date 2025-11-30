@@ -33,7 +33,7 @@ fun HabitManagementScreen(
         item {
             ListHeader {
                 Text(
-                    text = "Manage Habits",
+                    text = "Habits",
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )

@@ -17,7 +17,8 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.asin
 import kotlin.math.sqrt
-import kotlin.math.abs
+import kotlin.math.min
+import kotlin.math.max
 
 
 fun Rad(deg: Float): Double {
@@ -253,8 +254,21 @@ fun DrawScope.drawSimpleRounded(
     )
 
 }
-////
-////
+
+
+fun compositeFillFracs(
+    fillFrac: Float,
+    r_c: Float,
+    halfThickness: Float
+): Triple<Float, Float, Float> {
+    val lowerCircleFrac = min(1f, fillFrac*halfThickness/r_c)
+    val midsectionFrac = min(1f, max(0f, (halfThickness/(halfThickness - r_c))*(fillFrac - r_c/(2*halfThickness))))
+    val upperCircleFrac = max(0f, (halfThickness/r_c)*(fillFrac - 1) + 1)
+
+    return Triple(lowerCircleFrac, midsectionFrac, upperCircleFrac)
+}
+
+
 fun DrawScope.drawTriangularRounded(
     center: Offset,
     startAngle: Float,
@@ -276,6 +290,8 @@ fun DrawScope.drawTriangularRounded(
     val c_x = (center.x + r*cos(theta_c_centre)).toFloat()
     val c_y = (center.y + r*sin(theta_c_centre)).toFloat()
 
+    val (lcFrac, msFrac, ucFrac) = compositeFillFracs(fillFrac, r_c, halfThickness)
+
     drawArcSegment(
         color = color,
         center = center,
@@ -283,7 +299,7 @@ fun DrawScope.drawTriangularRounded(
         sweepAngle = sweepAngle,
         innerRadius = innerRadius + r_c,
         outerRadius = innerRadius + 2*halfThickness - r_c,
-        fillFrac = fillFrac,
+        fillFrac = msFrac,
         backColor = backColor
     )
 
@@ -291,7 +307,7 @@ fun DrawScope.drawTriangularRounded(
         color = color,
         center = Offset(c_x, c_y),
         radius = r_c,
-        fillFrac = fillFrac,
+        fillFrac = lcFrac,
         backgroundColor = backColor,
         maskCircleCenter = center
     )
@@ -303,7 +319,7 @@ fun DrawScope.drawTriangularRounded(
         innerRadius = innerRadius + 2*halfThickness - 2*r_c,
         r_c = r_c,
         color = color,
-        fillFrac = fillFrac,
+        fillFrac = ucFrac,
         backColor = backColor,
         arcCenter = arcCenter
     )
@@ -324,6 +340,8 @@ fun DrawScope.drawRectangularRounded(
     arcCenter: Offset? = null
 ) {
 
+    val (lcFrac, msFrac, ucFrac) = compositeFillFracs(fillFrac, r_c, halfThickness)
+
     drawArcSegment(
         color = color,
         center = center,
@@ -331,20 +349,8 @@ fun DrawScope.drawRectangularRounded(
         sweepAngle = sweepAngle,
         innerRadius = innerRadius + r_c,
         outerRadius = innerRadius + 2*halfThickness - r_c,
-        fillFrac = fillFrac,
+        fillFrac = msFrac,
         backColor = backColor
-    )
-
-    drawSimpleRounded(
-        center = center,
-        startAngle = startAngle,
-        sweepAngle = sweepAngle,
-        innerRadius = innerRadius + 2*halfThickness - 2*r_c,
-        r_c = r_c,
-        color = color,
-        fillFrac = fillFrac,
-        backColor = backColor,
-        arcCenter = arcCenter
     )
 
     drawSimpleRounded(
@@ -354,7 +360,19 @@ fun DrawScope.drawRectangularRounded(
         innerRadius = innerRadius,
         r_c = r_c,
         color = color,
-        fillFrac = fillFrac,
+        fillFrac = lcFrac,
+        backColor = backColor,
+        arcCenter = arcCenter
+    )
+
+    drawSimpleRounded(
+        center = center,
+        startAngle = startAngle,
+        sweepAngle = sweepAngle,
+        innerRadius = innerRadius + 2*halfThickness - 2*r_c,
+        r_c = r_c,
+        color = color,
+        fillFrac = ucFrac,
         backColor = backColor,
         arcCenter = arcCenter
     )
@@ -380,7 +398,7 @@ fun DrawScope.drawAdaptiveRoundedSegment(
     val outerRadius = innerRadius + 2 * halfThickness
 
     if (more_than_two) {
-        // When thickness is large, use simple arc without rounded end caps
+
         if (innermost) {
             drawTriangularRounded(
                 center = center,
@@ -477,7 +495,7 @@ data class DisplayGeometry(
 
         more_than_two = (halfThickness > c_rad)
 
-        r_c = kotlin.math.min(c_rad, halfThickness)
+        r_c = min(c_rad, halfThickness)
 
         // Pre-calculate day start angles (anticlockwise from startAngle)
         dayStartAngles = FloatArray(numDays) { dayIndex ->
