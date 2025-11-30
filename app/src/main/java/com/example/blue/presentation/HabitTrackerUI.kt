@@ -47,6 +47,9 @@ fun HabitTrackerDisplay(
     var touchScrollAccumulator by remember { mutableStateOf(0f) }
     val touchScrollThreshold = 50f  // Adjust this value to control touch scroll sensitivity
 
+    var horizontalSwipeAccumulator by remember { mutableStateOf(0f) }
+    val horizontalSwipeThreshold = 80f  // Threshold for left swipe to navigate
+
     // Derived date information for selected day
     val selectedDate by remember { derivedStateOf { currentDate.minusDays(selectedDayIndex.toLong()) } }
     val selectedDayOfMonth by remember { derivedStateOf { selectedDate.dayOfMonth.toString() } }
@@ -68,13 +71,15 @@ fun HabitTrackerDisplay(
     val darkGreen = Color(0xFF2E7D32)     // Dark green for selected (completed)
 
     val context = LocalContext.current
-    val numDays = 10
 
     // Load habit data - reloads when currentDate changes
-    var habitData by remember { mutableStateOf(loadHabitData(context, currentDate, numDays)) }
+    var habitData by remember { mutableStateOf(loadHabitData(context, currentDate)) }
 
     // Mutable completions state
     var completions by remember { mutableStateOf(habitData.completions) }
+
+    // Get numDays from settings
+    val numDays = habitData.settings.noDays
 
     // Filter out disabled habits for display
     val enabledHabits by remember { derivedStateOf {
@@ -94,7 +99,7 @@ fun HabitTrackerDisplay(
 
     // Reload data when date changes
     LaunchedEffect(currentDate) {
-        habitData = loadHabitData(context, currentDate, numDays)
+        habitData = loadHabitData(context, currentDate)
         completions = habitData.completions
     }
 
@@ -132,10 +137,10 @@ fun HabitTrackerDisplay(
             context,
             HabitData(
                 habits = habitData.habits,
-                completions = completions
+                completions = completions,
+                settings = habitData.settings
             ),
-            currentDate,
-            numDays
+            currentDate
         )
     }
 
@@ -195,6 +200,18 @@ fun HabitTrackerDisplay(
                 .focusable()
                 .pointerInput("drag") {
                     detectDragGestures { _, dragAmount ->
+                        // Accumulate horizontal drag (negative dragAmount.x = drag left)
+                        horizontalSwipeAccumulator += dragAmount.x
+
+                        // Check for left swipe to navigate to management
+                        if (horizontalSwipeAccumulator <= -horizontalSwipeThreshold) {
+                            onNavigateToManagement()
+                            horizontalSwipeAccumulator = 0f
+                        } else if (horizontalSwipeAccumulator >= horizontalSwipeThreshold) {
+                            // Reset if swiping right (opposite direction)
+                            horizontalSwipeAccumulator = 0f
+                        }
+
                         // Accumulate vertical drag (negative dragAmount.y = drag up, positive = drag down)
                         touchScrollAccumulator += dragAmount.y
 
@@ -385,7 +402,8 @@ fun HabitTrackerDisplay(
                 lightGreen = lightGreen,
                 darkGreen = darkGreen,
                 selectedDayIndex = selectedDayIndex,
-                selectedHabitIndex = selectedHabitIndex
+                selectedHabitIndex = selectedHabitIndex,
+                numDays = numDays
             )
         }
 

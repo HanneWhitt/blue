@@ -6,11 +6,9 @@ import androidx.compose.ui.graphics.Color
 import org.json.JSONObject
 import java.time.LocalDate
 
-fun loadHabitData(context: Context, currentDate: LocalDate, numDays: Int): HabitData {
+fun loadHabitData(context: Context, currentDate: LocalDate): HabitData {
     val savedDataFile = "saved_habit_data.json"
     val initialDataFile = "initial_habit_data.json"
-
-    println("Loading data for $numDays days ending on $currentDate")
 
     return try {
         // First, try to load from internal storage
@@ -18,24 +16,31 @@ fun loadHabitData(context: Context, currentDate: LocalDate, numDays: Int): Habit
         if (file.exists()) {
             println("Loading data from internal storage: $savedDataFile")
             val jsonString = context.openFileInput(savedDataFile).bufferedReader().use { it.readText() }
-            parseHabitDataJson(jsonString, currentDate, numDays)
+            parseHabitDataJson(jsonString, currentDate)
         } else {
             // If saved file doesn't exist, load from assets
             println("Saved data not found, loading from assets: $initialDataFile")
             val inputStream = context.assets.open(initialDataFile)
             val jsonString = inputStream.bufferedReader().use { it.readText() }
-            parseHabitDataJson(jsonString, currentDate, numDays)
+            parseHabitDataJson(jsonString, currentDate)
         }
     } catch (e: Exception) {
         println("Error loading habit data: ${e.message}")
         e.printStackTrace()
         // Fallback to empty data if both loading attempts fail
-        HabitData(emptyList(), emptyList())
+        HabitData(emptyList(), emptyList(), AppSettings())
     }
 }
 
-fun parseHabitDataJson(jsonString: String, currentDate: LocalDate, numDays: Int): HabitData {
+fun parseHabitDataJson(jsonString: String, currentDate: LocalDate): HabitData {
     val jsonObject = JSONObject(jsonString)
+
+    // Parse settings
+    val settingsObject = jsonObject.optJSONObject("settings")
+    val noDays = settingsObject?.optInt("no_days", 10) ?: 10
+    val settings = AppSettings(noDays = noDays)
+
+    println("Loading data for $noDays days ending on $currentDate")
 
     // Parse habits from dictionary format
     val habitsObject = jsonObject.getJSONObject("habits")
@@ -104,9 +109,9 @@ fun parseHabitDataJson(jsonString: String, currentDate: LocalDate, numDays: Int)
         }
     }
 
-    // Generate list of dates for the last numDays (going backwards from currentDate)
+    // Generate list of dates for the last noDays (going backwards from currentDate)
     val dateList = mutableListOf<LocalDate>()
-    for (i in 0 until numDays) {
+    for (i in 0 until noDays) {
         dateList.add(currentDate.minusDays(i.toLong()))
     }
 
@@ -157,12 +162,13 @@ fun parseHabitDataJson(jsonString: String, currentDate: LocalDate, numDays: Int)
         }
     }
 
-    return HabitData(habits, completions)
+    return HabitData(habits, completions, settings)
 }
 
-fun saveHabitDataToFile(context: Context, habitData: HabitData, currentDate: LocalDate, numDays: Int) {
+fun saveHabitDataToFile(context: Context, habitData: HabitData, currentDate: LocalDate) {
     try {
         val output_data_file = "saved_habit_data.json"
+        val numDays = habitData.settings.noDays
 
         // Load existing data if it exists to preserve historical records
         val existingCompletionsObject = try {
@@ -181,6 +187,11 @@ fun saveHabitDataToFile(context: Context, habitData: HabitData, currentDate: Loc
 
         // Create JSON object
         val jsonObject = JSONObject()
+
+        // Add settings
+        val settingsObject = JSONObject()
+        settingsObject.put("no_days", habitData.settings.noDays)
+        jsonObject.put("settings", settingsObject)
 
         // Add habits dictionary
         val habitsObject = JSONObject()
@@ -282,14 +293,13 @@ fun saveHabitDataToFile(context: Context, habitData: HabitData, currentDate: Loc
 fun createHabit(
     context: Context,
     currentDate: LocalDate,
-    numDays: Int,
     name: String,
     abbreviation: String,
     type: HabitType,
     completionsPerDay: Int = 3,
     targetTime: String = "12:00"
 ): HabitData {
-    val habitData = loadHabitData(context, currentDate, numDays)
+    val habitData = loadHabitData(context, currentDate)
 
     // Find the next available ID
     val nextId = if (habitData.habits.isEmpty()) {
@@ -308,10 +318,10 @@ fun createHabit(
 
     // Add new habit to the list
     val updatedHabits = habitData.habits + newHabit
-    val updatedHabitData = HabitData(updatedHabits, habitData.completions)
+    val updatedHabitData = HabitData(updatedHabits, habitData.completions, habitData.settings)
 
     // Save to file
-    saveHabitDataToFile(context, updatedHabitData, currentDate, numDays)
+    saveHabitDataToFile(context, updatedHabitData, currentDate)
 
     return updatedHabitData
 }
@@ -319,7 +329,6 @@ fun createHabit(
 fun updateHabit(
     context: Context,
     currentDate: LocalDate,
-    numDays: Int,
     habitId: Int,
     name: String,
     abbreviation: String,
@@ -328,7 +337,7 @@ fun updateHabit(
     targetTime: String = "12:00",
     enabled: Boolean = true
 ): HabitData {
-    val habitData = loadHabitData(context, currentDate, numDays)
+    val habitData = loadHabitData(context, currentDate)
 
     // Update the habit
     val color = Color(android.graphics.Color.parseColor("#1565C0"))
@@ -344,10 +353,10 @@ fun updateHabit(
         }
     }
 
-    val updatedHabitData = HabitData(updatedHabits, habitData.completions)
+    val updatedHabitData = HabitData(updatedHabits, habitData.completions, habitData.settings)
 
     // Save to file
-    saveHabitDataToFile(context, updatedHabitData, currentDate, numDays)
+    saveHabitDataToFile(context, updatedHabitData, currentDate)
 
     return updatedHabitData
 }
@@ -355,20 +364,43 @@ fun updateHabit(
 fun deleteHabit(
     context: Context,
     currentDate: LocalDate,
-    numDays: Int,
     habitId: Int
 ): HabitData {
-    val habitData = loadHabitData(context, currentDate, numDays)
+    val habitData = loadHabitData(context, currentDate)
 
     // Remove the habit and its completions
     val updatedHabits = habitData.habits.filter { it.id != habitId }
     val updatedCompletions = habitData.completions.filter { it.habitId != habitId }
 
-    val updatedHabitData = HabitData(updatedHabits, updatedCompletions)
+    val updatedHabitData = HabitData(updatedHabits, updatedCompletions, habitData.settings)
 
     // Save to file
-    saveHabitDataToFile(context, updatedHabitData, currentDate, numDays)
+    saveHabitDataToFile(context, updatedHabitData, currentDate)
 
     return updatedHabitData
+}
+
+fun resetHabitData(context: Context): Boolean {
+    return try {
+        val savedDataFile = "saved_habit_data.json"
+        val file = context.getFileStreamPath(savedDataFile)
+
+        if (file.exists()) {
+            val deleted = file.delete()
+            if (deleted) {
+                println("Reset successful: $savedDataFile deleted")
+            } else {
+                println("Reset failed: Could not delete $savedDataFile")
+            }
+            deleted
+        } else {
+            println("Reset: No saved data file to delete")
+            true // Consider it successful if there's nothing to delete
+        }
+    } catch (e: Exception) {
+        println("Error during reset: ${e.message}")
+        e.printStackTrace()
+        false
+    }
 }
 

@@ -44,7 +44,12 @@ sealed class Habit {
     ) : Habit()
 }
 
+data class AppSettings(
+    val noDays: Int = 10
+)
+
 data class HabitData(
     val habits: List<Habit>,
-    val completions: List<HabitCompletion>
+    val completions: List<HabitCompletion>,
+    val settings: AppSettings = AppSettings()
 )

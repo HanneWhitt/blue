@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import androidx.wear.compose.material.Chip
 import androidx.wear.compose.material.ChipDefaults
 import androidx.wear.compose.material.Icon
@@ -23,7 +24,8 @@ fun HabitManagementScreen(
     habitData: HabitData,
     onAddHabit: () -> Unit,
     onEditHabit: (Habit) -> Unit,
-    onToggleEnabled: (Habit, Boolean) -> Unit
+    onToggleEnabled: (Habit, Boolean) -> Unit,
+    onNavigateToSettings: () -> Unit = {}
 ) {
     ScalingLazyColumn(
         modifier = Modifier.fillMaxSize()
@@ -36,23 +38,6 @@ fun HabitManagementScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-        }
-
-        item {
-            Chip(
-                label = {
-                    Text(
-                        text = "Add Habit",
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                },
-                onClick = onAddHabit,
-                colors = ChipDefaults.primaryChipColors(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-            )
         }
 
         items(habitData.habits.size) { index ->
@@ -91,6 +76,44 @@ fun HabitManagementScreen(
                         contentDescription = if (isEnabled) "Enabled" else "Disabled"
                     )
                 },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+        }
+
+        item {
+            Chip(
+                label = {
+                    Text(
+                        text = "+",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                onClick = onAddHabit,
+                colors = ChipDefaults.primaryChipColors(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+        }
+
+        item {
+            Chip(
+                label = {
+                    Text(
+                        text = "Settings",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                onClick = onNavigateToSettings,
+                colors = ChipDefaults.secondaryChipColors(),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp)

@@ -1,4 +1,7 @@
 {
+  "settings": {
+    "no_days": 10
+  },
   "habits": {
     "0": {
       "name": "Up by 7:05",

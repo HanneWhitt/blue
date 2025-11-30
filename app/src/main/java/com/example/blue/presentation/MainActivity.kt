@@ -57,7 +57,7 @@ fun WearApp() {
                 }
 
                 composable("manage") {
-                    var habitData by remember { mutableStateOf(loadHabitData(context, LocalDate.now(), 10)) }
+                    var habitData by remember { mutableStateOf(loadHabitData(context, LocalDate.now())) }
 
                     HabitManagementScreen(
                         habitData = habitData,
@@ -79,7 +79,6 @@ fun WearApp() {
                             updateHabit(
                                 context,
                                 LocalDate.now(),
-                                10,
                                 habit.id,
                                 habit.name,
                                 habit.abbreviation,
@@ -90,7 +89,10 @@ fun WearApp() {
                             )
 
                             // Reload the data to refresh the UI
-                            habitData = loadHabitData(context, LocalDate.now(), 10)
+                            habitData = loadHabitData(context, LocalDate.now())
+                        },
+                        onNavigateToSettings = {
+                            navController.navigate("settings")
                         }
                     )
                 }
@@ -99,7 +101,7 @@ fun WearApp() {
                     val habitIdString = backStackEntry.arguments?.getString("habitId") ?: "-1"
                     val habitId = habitIdString.toIntOrNull() ?: -1
 
-                    val habitData = loadHabitData(context, LocalDate.now(), 10)
+                    val habitData = loadHabitData(context, LocalDate.now())
                     val existingHabit = if (habitId >= 0) {
                         habitData.habits.find { it.id == habitId }
                     } else {
@@ -116,20 +118,58 @@ fun WearApp() {
                                     is Habit.TimeBasedHabit -> existingHabit.enabled
                                     is Habit.MultipleHabit -> existingHabit.enabled
                                 }
-                                updateHabit(context, LocalDate.now(), 10, habitId, name, abbreviation, type, completionsPerDay, targetTime, currentEnabled)
+                                updateHabit(context, LocalDate.now(), habitId, name, abbreviation, type, completionsPerDay, targetTime, currentEnabled)
                             } else {
                                 // Create new habit (enabled defaults to true)
-                                createHabit(context, LocalDate.now(), 10, name, abbreviation, type, completionsPerDay, targetTime)
+                                createHabit(context, LocalDate.now(), name, abbreviation, type, completionsPerDay, targetTime)
                             }
                             navController.popBackStack()
                         },
                         onDelete = if (existingHabit != null) {
                             {
-                                deleteHabit(context, LocalDate.now(), 10, habitId)
+                                deleteHabit(context, LocalDate.now(), habitId)
                                 navController.popBackStack()
                             }
                         } else {
                             null
+                        }
+                    )
+                }
+
+                composable("settings") {
+                    SettingsScreen(
+                        onNavigateToNumberOfDays = {
+                            navController.navigate("number-of-days")
+                        },
+                        onReset = {
+                            navController.navigate("reset-confirmation")
+                        }
+                    )
+                }
+
+                composable("number-of-days") {
+                    val habitData = loadHabitData(context, LocalDate.now())
+                    NumberOfDaysScreen(
+                        currentNoDays = habitData.settings.noDays,
+                        onSave = { newDays ->
+                            navController.popBackStack()
+                        }
+                    )
+                }
+
+                composable("reset-confirmation") {
+                    ResetConfirmationScreen(
+                        onConfirm = {
+                            // Delete the saved data file
+                            resetHabitData(context)
+                            // Navigate back to tracker (will reload from initial data)
+                            navController.navigate("tracker") {
+                                // Clear the back stack so user can't go back
+                                popUpTo("tracker") { inclusive = true }
+                            }
+                        },
+                        onCancel = {
+                            navController.popBackStack()
                         }
                     )
                 }
@@ -140,7 +180,7 @@ fun WearApp() {
                     val habitId = habitIdString.toIntOrNull() ?: 0
                     val dayIndex = dayIndexString.toIntOrNull() ?: 0
 
-                    val habitData = loadHabitData(context, LocalDate.now(), 10)
+                    val habitData = loadHabitData(context, LocalDate.now())
                     val habit = habitData.habits.find { it.id == habitId }
                     val currentCompletion = habitData.completions.find {
                         it.habitId == habitId && it.dayIndex == dayIndex
@@ -171,8 +211,8 @@ fun WearApp() {
                                     updatedCompletions.add(newCompletion)
                                 }
 
-                                val updatedHabitData = HabitData(habitData.habits, updatedCompletions)
-                                saveHabitDataToFile(context, updatedHabitData, LocalDate.now(), 10)
+                                val updatedHabitData = HabitData(habitData.habits, updatedCompletions, habitData.settings)
+                                saveHabitDataToFile(context, updatedHabitData, LocalDate.now())
 
                                 navController.popBackStack()
                             }

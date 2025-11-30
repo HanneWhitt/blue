@@ -519,14 +519,15 @@ fun DrawScope.drawHabitTracker(
     lightGreen: Color,
     darkGreen: Color,
     selectedDayIndex: Int,
-    selectedHabitIndex: Int
+    selectedHabitIndex: Int,
+    numDays: Int
 ) {
     val geometry = DisplayGeometry(
         center = center,
         maxRadius = maxRadius,
         innerMargin = innerMargin,
         gapSize = 5f,
-        numDays = 10,
+        numDays = numDays,
         numHabits = habits.size,
         startAngle = -90f,
         gapAngle = 45f
