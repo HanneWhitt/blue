@@ -17,8 +17,13 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.asin
 import kotlin.math.sqrt
-import kotlin.math.min
 import kotlin.math.abs
+
+
+fun Rad(deg: Float): Double {
+    return Math.toRadians(deg.toDouble())
+}
+
 
 fun DrawScope.drawArcSegment(
     color: Color,
@@ -180,25 +185,27 @@ fun DrawScope.drawPartiallyFilledCircle(
 }
 
 
-fun DrawScope.drawRoundedArcSegment(
-    color: Color,
+fun DrawScope.drawSimpleRounded(
     center: Offset,
     startAngle: Float,
     sweepAngle: Float,
     innerRadius: Float,
-    outerRadius: Float,
+    r_c: Float,
+    color: Color,
     fillFrac: Float = 1.0f,
-    backColor: Color? = null
+    backColor: Color? = null,
+    arcCenter: Offset? = null
 ) {
+    // Use center as default if arcCenter is null
+    val arcCenter_ = arcCenter ?: center
+
     // Convert input angles from degrees to radians
-    val startAngle_rad = Math.toRadians(startAngle.toDouble())
-    val sweepAngle_rad = Math.toRadians(sweepAngle.toDouble())
+    val startAngle_rad = Rad(startAngle)
+    val sweepAngle_rad = Rad(sweepAngle)
 
-    val halfThickness = (outerRadius - innerRadius) / 2
-    val c_rad = halfThickness
-    val cc_r = innerRadius + halfThickness
+    val cc_r = innerRadius + r_c
 
-    val delta_theta = 2 * asin(c_rad / (2 * cc_r))
+    val delta_theta = 2 * asin(r_c / (2 * cc_r))
 
     val theta_c1 = startAngle_rad - delta_theta
     val theta_c2 = startAngle_rad + sweepAngle_rad + delta_theta
@@ -213,9 +220,11 @@ fun DrawScope.drawRoundedArcSegment(
     val theta_c2_deg = Math.toDegrees(theta_c2).toFloat()
     val sweep_deg = theta_c2_deg - theta_c1_deg
 
+    val outerRadius = innerRadius + 2*r_c
+
     drawArcSegment(
         color = color,
-        center = center,
+        center = arcCenter_,
         startAngle = theta_c1_deg,
         sweepAngle = sweep_deg,
         innerRadius = innerRadius,
@@ -228,7 +237,7 @@ fun DrawScope.drawRoundedArcSegment(
     drawPartiallyFilledCircle(
         color = color,
         center = Offset(c1_x, c1_y),
-        radius = c_rad,
+        radius = r_c,
         fillFrac = fillFrac,
         backgroundColor = backColor,
         maskCircleCenter = center
@@ -237,123 +246,264 @@ fun DrawScope.drawRoundedArcSegment(
     drawPartiallyFilledCircle(
         color = color,
         center = Offset(c2_x, c2_y),
-        radius = c_rad,
+        radius = r_c,
         fillFrac = fillFrac,
         backgroundColor = backColor,
         maskCircleCenter = center
     )
 
 }
-
-
-fun DrawScope.drawTriangularRoundedSegment(
-    color: Color,
+////
+////
+fun DrawScope.drawTriangularRounded(
     center: Offset,
     startAngle: Float,
     sweepAngle: Float,
     innerRadius: Float,
-    outerRadius: Float,
+    halfThickness: Float,
+    r_c: Float,
+    color: Color,
     fillFrac: Float = 1.0f,
-    backColor: Color? = null
+    backColor: Color? = null,
+    arcCenter: Offset? = null
 ) {
     val startAngle_rad = Math.toRadians(startAngle.toDouble())
     val sweepAngle_rad = Math.toRadians(sweepAngle.toDouble())
 
-    val r = innerRadius / (1 - 2*sin(abs(sweepAngle_rad)/4))
-
-    println(r)
-
-    val c_rad = (r - innerRadius).toFloat()
-
-    println(c_rad)
-
-
+    val r = innerRadius + r_c
     val theta_c_centre = startAngle_rad + sweepAngle_rad/2
 
     val c_x = (center.x + r*cos(theta_c_centre)).toFloat()
     val c_y = (center.y + r*sin(theta_c_centre)).toFloat()
-
-    drawPartiallyFilledCircle(
-        color = color,
-        center = Offset(c_x, c_y),
-        radius = c_rad,
-        fillFrac = fillFrac,
-        backgroundColor = backColor,
-        maskCircleCenter = center
-    )
-
-    val r_outer_inner = outerRadius - c_rad*2
-
-    drawRoundedArcSegment(
-        color,
-        center,
-        startAngle,
-        sweepAngle,
-        r_outer_inner,
-        outerRadius,
-        fillFrac,
-        backColor
-    )
-
-    val r_mid_outer = outerRadius - c_rad
-    val r_min_inner = innerRadius + c_rad
 
     drawArcSegment(
         color = color,
         center = center,
         startAngle = startAngle,
         sweepAngle = sweepAngle,
-        innerRadius = r_min_inner,
-        outerRadius = r_mid_outer,
+        innerRadius = innerRadius + r_c,
+        outerRadius = innerRadius + 2*halfThickness - r_c,
         fillFrac = fillFrac,
         backColor = backColor
     )
 
+    drawPartiallyFilledCircle(
+        color = color,
+        center = Offset(c_x, c_y),
+        radius = r_c,
+        fillFrac = fillFrac,
+        backgroundColor = backColor,
+        maskCircleCenter = center
+    )
+
+    drawSimpleRounded(
+        center = center,
+        startAngle = startAngle,
+        sweepAngle = sweepAngle,
+        innerRadius = innerRadius + 2*halfThickness - 2*r_c,
+        r_c = r_c,
+        color = color,
+        fillFrac = fillFrac,
+        backColor = backColor,
+        arcCenter = arcCenter
+    )
+
 }
 
-fun DrawScope.drawAdaptiveRoundedSegment(
-    color: Color,
+
+fun DrawScope.drawRectangularRounded(
     center: Offset,
     startAngle: Float,
     sweepAngle: Float,
     innerRadius: Float,
-    outerRadius: Float,
+    halfThickness: Float,
+    r_c: Float,
+    color: Color,
     fillFrac: Float = 1.0f,
-    backColor: Color? = null
+    backColor: Color? = null,
+    arcCenter: Offset? = null
 ) {
-    // Convert input angles from degrees to radians
-    val startAngle_rad = Math.toRadians(startAngle.toDouble())
-    val sweepAngle_rad = Math.toRadians(sweepAngle.toDouble())
 
-    val halfThickness = (outerRadius - innerRadius) / 2
-    val cc_r = innerRadius + halfThickness
+    drawArcSegment(
+        color = color,
+        center = center,
+        startAngle = startAngle,
+        sweepAngle = sweepAngle,
+        innerRadius = innerRadius + r_c,
+        outerRadius = innerRadius + 2*halfThickness - r_c,
+        fillFrac = fillFrac,
+        backColor = backColor
+    )
 
-    val max_c_rad = 2*cc_r*sin(abs(sweepAngle_rad)/4).toFloat()
+    drawSimpleRounded(
+        center = center,
+        startAngle = startAngle,
+        sweepAngle = sweepAngle,
+        innerRadius = innerRadius + 2*halfThickness - 2*r_c,
+        r_c = r_c,
+        color = color,
+        fillFrac = fillFrac,
+        backColor = backColor,
+        arcCenter = arcCenter
+    )
 
-    if (halfThickness < max_c_rad) {
-        drawRoundedArcSegment(
-            color,
-            center,
-            startAngle,
-            sweepAngle,
-            innerRadius,
-            outerRadius,
-            fillFrac,
-            backColor
-        )
+    drawSimpleRounded(
+        center = center,
+        startAngle = startAngle,
+        sweepAngle = sweepAngle,
+        innerRadius = innerRadius,
+        r_c = r_c,
+        color = color,
+        fillFrac = fillFrac,
+        backColor = backColor,
+        arcCenter = arcCenter
+    )
+
+}
+
+
+fun DrawScope.drawAdaptiveRoundedSegment(
+    more_than_two: Boolean,
+    innermost: Boolean,
+    center: Offset,
+    startAngle: Float,
+    sweepAngle: Float,
+    innerRadius: Float,
+    halfThickness: Float,
+    r_c: Float,
+    color: Color,
+    fillFrac: Float = 1.0f,
+    backColor: Color? = null,
+    arcCenter: Offset? = null
+) {
+
+    val outerRadius = innerRadius + 2 * halfThickness
+
+    if (more_than_two) {
+        // When thickness is large, use simple arc without rounded end caps
+        if (innermost) {
+            drawTriangularRounded(
+                center = center,
+                startAngle = startAngle,
+                sweepAngle = sweepAngle,
+                innerRadius = innerRadius,
+                halfThickness = halfThickness,
+                r_c = r_c,
+                color = color,
+                fillFrac = fillFrac,
+                backColor = backColor,
+                arcCenter = arcCenter
+            )
+        } else {
+            drawRectangularRounded(
+                center = center,
+                startAngle = startAngle,
+                sweepAngle = sweepAngle,
+                innerRadius = innerRadius,
+                halfThickness = halfThickness,
+                r_c = r_c,
+                color = color,
+                fillFrac = fillFrac,
+                backColor = backColor,
+                arcCenter = arcCenter
+            )
+        }
+
+
     } else {
-        drawTriangularRoundedSegment(
-            color,
-            center,
-            startAngle,
-            sweepAngle,
-            innerRadius,
-            outerRadius,
-            fillFrac,
-            backColor
+
+        drawSimpleRounded(
+            center = center,
+            startAngle = startAngle,
+            sweepAngle = sweepAngle,
+            innerRadius = innerRadius,
+            r_c = r_c,
+            color = color,
+            fillFrac = fillFrac,
+            backColor = backColor,
+            arcCenter = arcCenter
         )
     }
+}
 
+
+data class DisplayGeometry(
+    val center: Offset,
+    val maxRadius: Float,
+    val innerMargin: Float,
+    val gapSize: Float,
+    val numDays: Int,
+    val numHabits: Int,
+    val startAngle: Float = -90f,
+    val gapAngle: Float = 45f
+) {
+    val totalArcAngle: Float
+    val segmentAngle: Float
+    val availableRadius: Float
+    val habitLayerThickness: Float
+    val halfThickness: Float
+    val effectiveCenterRadius: Float
+    val r_intermed: Float
+    val c_rad: Float
+    val r_c: Float
+    val more_than_two: Boolean
+
+    // Pre-calculated arrays for all segments
+    val dayStartAngles: FloatArray
+    val habitInnerRadii: FloatArray
+    val habitOuterRadii: FloatArray
+    val effectiveCenters: Array<Offset>
+
+    init {
+        totalArcAngle = 360f - gapAngle  // Available degrees for the days
+        segmentAngle = totalArcAngle / numDays // Degrees per day
+
+        availableRadius = maxRadius - innerMargin
+        habitLayerThickness = (availableRadius - (numHabits - 1) * gapSize) / numHabits
+        halfThickness = habitLayerThickness / 2
+
+        effectiveCenterRadius = gapSize / (2 * sin(Rad(segmentAngle) / 2).toFloat())
+        if (effectiveCenterRadius > innerMargin || effectiveCenterRadius < 0) {
+            throw IllegalArgumentException("effectiveCenterRadius is wrong")
+        }
+
+        val effectiveCenterInnerMargin = innerMargin - effectiveCenterRadius
+
+        r_intermed = (effectiveCenterInnerMargin / (1 - 2 * sin(Rad(segmentAngle) / 4))).toFloat()
+        c_rad = r_intermed - effectiveCenterInnerMargin
+
+        println(halfThickness)
+        println(c_rad)
+
+        more_than_two = (halfThickness > c_rad)
+
+        r_c = kotlin.math.min(c_rad, halfThickness)
+
+        // Pre-calculate day start angles (anticlockwise from startAngle)
+        dayStartAngles = FloatArray(numDays) { dayIndex ->
+            startAngle - (dayIndex * segmentAngle)
+        }
+
+        // Pre-calculate habit layer radii (habit 0 is innermost, highest index is outermost)
+        // Each layer is separated by gapSize
+        habitOuterRadii = FloatArray(numHabits) { habitIndex ->
+            val reversedIndex = numHabits - 1 - habitIndex
+            maxRadius - reversedIndex * (habitLayerThickness + gapSize)
+        }
+
+        habitInnerRadii = FloatArray(numHabits) { habitIndex ->
+            habitOuterRadii[habitIndex] - habitLayerThickness
+        }
+
+        // Pre-calculate effective centers for each day (creates visual spacing)
+        effectiveCenters = Array(numDays) { dayIndex ->
+            val dayStartAngle = dayStartAngles[dayIndex]
+            val effectiveCenterAngle = Math.toRadians((dayStartAngle - segmentAngle / 2).toDouble())
+            val effectiveCenter_x = center.x + effectiveCenterRadius * cos(effectiveCenterAngle).toFloat()
+            val effectiveCenter_y = center.y + effectiveCenterRadius * sin(effectiveCenterAngle).toFloat()
+            Offset(effectiveCenter_x, effectiveCenter_y)
+        }
+    }
 }
 
 
@@ -371,33 +521,26 @@ fun DrawScope.drawHabitTracker(
     selectedDayIndex: Int,
     selectedHabitIndex: Int
 ) {
-    val numDays = 10
-    val numHabits = habits.size
-    val radGapProportion = 0.8f
-    val angleGapCenterOffset = 0.3f
-
-    // Arc configuration variables
-    val startingAngle = -90f  // Start at 12 o'clock (vertical, top of screen)
-    val gapAngle = 45f        // Gap size in degrees (adjustable)
-
-    val totalArcAngle = 360f - gapAngle  // Available degrees for the days
-    val segmentAngle = totalArcAngle / numDays  // Each day gets equal portion
-
-    val availableRadius = maxRadius - innerMargin
-    val habitLayerThickness = availableRadius / numHabits
-
-    val effectiveCenterOffsetRadius = innerMargin*angleGapCenterOffset
+    val geometry = DisplayGeometry(
+        center = center,
+        maxRadius = maxRadius,
+        innerMargin = innerMargin,
+        gapSize = 5f,
+        numDays = 10,
+        numHabits = habits.size,
+        startAngle = -90f,
+        gapAngle = 45f
+    )
 
     // Draw each habit layer (habit 0 is innermost, highest index is outermost)
     habits.forEachIndexed { habitIndex, habit ->
-        val reversedIndex = numHabits - 1 - habitIndex
-        val outerRadius = maxRadius - (reversedIndex * habitLayerThickness)
-        val innerRadius = outerRadius - habitLayerThickness * radGapProportion // Leave gap between layers
+        val innerRadius = geometry.habitInnerRadii[habitIndex]
+        val outerRadius = geometry.habitOuterRadii[habitIndex]
 
         // Draw each day segment for this habit
-        for (dayIndex in 0 until numDays) {
-            // Calculate angle for this day (going anticlockwise from starting position)
-            val dayStartAngle = startingAngle - (dayIndex * segmentAngle)
+        for (dayIndex in 0 until geometry.numDays) {
+            val dayStartAngle = geometry.dayStartAngles[dayIndex]
+            val effectiveCenter = geometry.effectiveCenters[dayIndex]
 
             // Find completion status for this habit/day
             val completion = completions.find {
@@ -406,12 +549,7 @@ fun DrawScope.drawHabitTracker(
 
             // Check if this is the selected segment
             val isSelected = (habitIndex == selectedHabitIndex && dayIndex == selectedDayIndex)
-
-            val effectiveCenterAngle = Math.toRadians((dayStartAngle - segmentAngle/2).toDouble())
-
-            val effectiveCenter_x = center.x + effectiveCenterOffsetRadius*cos(effectiveCenterAngle).toFloat()
-            val effectiveCenter_y = center.y + effectiveCenterOffsetRadius*sin(effectiveCenterAngle).toFloat()
-            val effectiveCenter = Offset(effectiveCenter_x, effectiveCenter_y)
+            val innermost = (habitIndex == 0)
 
             // Draw based on habit type
             when (habit) {
@@ -422,14 +560,18 @@ fun DrawScope.drawHabitTracker(
                     val fillFrac = completionCount.toFloat() / habit.completionsPerDay.toFloat()
 
                     drawAdaptiveRoundedSegment(
-                        color = completedColor,
+                        more_than_two = geometry.more_than_two,
+                        innermost = innermost,
                         center = effectiveCenter,
                         startAngle = dayStartAngle,
-                        sweepAngle = -segmentAngle,
-                        innerRadius = innerRadius - effectiveCenterOffsetRadius,
-                        outerRadius = outerRadius - effectiveCenterOffsetRadius,
+                        sweepAngle = -geometry.segmentAngle,
+                        innerRadius = innerRadius - geometry.effectiveCenterRadius,
+                        halfThickness = geometry.halfThickness,
+                        r_c = geometry.r_c,
+                        color = completedColor,
                         fillFrac = fillFrac,
-                        backColor = notCompletedColor
+                        backColor = notCompletedColor,
+                        arcCenter = effectiveCenter
                     )
                 }
                 is Habit.TimeBasedHabit -> {
@@ -453,18 +595,22 @@ fun DrawScope.drawHabitTracker(
                     }
 
                     drawAdaptiveRoundedSegment(
-                        color = segmentColor,
+                        more_than_two = geometry.more_than_two,
+                        innermost = innermost,
                         center = effectiveCenter,
                         startAngle = dayStartAngle,
-                        sweepAngle = -segmentAngle,
-                        innerRadius = innerRadius - effectiveCenterOffsetRadius,
-                        outerRadius = outerRadius - effectiveCenterOffsetRadius
+                        sweepAngle = -geometry.segmentAngle,
+                        innerRadius = innerRadius - geometry.effectiveCenterRadius,
+                        halfThickness = geometry.halfThickness,
+                        r_c = geometry.r_c,
+                        color = segmentColor,
+                        arcCenter = effectiveCenter
                     )
 
                     // Draw completion time text if this habit is selected and has a time
                     if (habitIndex == selectedHabitIndex && completion?.completionTime != null) {
                         val time = completion.completionTime
-                        val midAngle = dayStartAngle - (segmentAngle / 2f)
+                        val midAngle = dayStartAngle - (geometry.segmentAngle / 2f)
                         val angleRad = Math.toRadians(midAngle.toDouble())
                         val midRadius = ((innerRadius + outerRadius) / 2f)
 
@@ -487,13 +633,6 @@ fun DrawScope.drawHabitTracker(
                             // Position at center of segment
                             val centerX = center.x + midRadius * cos(angleRad).toFloat()
                             val centerY = center.y + midRadius * sin(angleRad).toFloat()
-
-                            // Debug: Draw small circle at text anchor point
-                            drawCircle(
-                                color = Color.Red,
-                                radius = 3f,
-                                center = Offset(centerX, centerY)
-                            )
 
                             // Calculate offset to center text vertically at this point
                             val fontMetrics = paint.fontMetrics
@@ -524,12 +663,16 @@ fun DrawScope.drawHabitTracker(
                     }
 
                     drawAdaptiveRoundedSegment(
-                        color = segmentColor,
+                        more_than_two = geometry.more_than_two,
+                        innermost = innermost,
                         center = effectiveCenter,
                         startAngle = dayStartAngle,
-                        sweepAngle = -segmentAngle,
-                        innerRadius = innerRadius - effectiveCenterOffsetRadius,
-                        outerRadius = outerRadius - effectiveCenterOffsetRadius
+                        sweepAngle = -geometry.segmentAngle,
+                        innerRadius = innerRadius - geometry.effectiveCenterRadius,
+                        halfThickness = geometry.halfThickness,
+                        r_c = geometry.r_c,
+                        color = segmentColor,
+                        arcCenter = effectiveCenter
                     )
                 }
             }
