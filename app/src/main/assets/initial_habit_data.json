@@ -4,29 +4,15 @@
   },
   "habits": {
     "0": {
-      "name": "Up by 7:05",
-      "abbreviation": "UP7",
+      "name": "Habit1",
+      "abbreviation": "H1",
       "type": "Binary",
       "colorHex": "#1565C0",
       "enabled": true
     },
     "1": {
-      "name": "Leave work 18:30",
-      "abbreviation": "LW6.5",
-      "type": "Binary",
-      "colorHex": "#1565C0",
-      "enabled": true
-    },
-    "2": {
-      "name": "Down by 10:05",
-      "abbreviation": "DB10",
-      "type": "Binary",
-      "colorHex": "#1565C0",
-      "enabled": true
-    },
-    "3": {
-      "name": "NP",
-      "abbreviation": "NP",
+      "name": "Habit2",
+      "abbreviation": "H2",
       "type": "Binary",
       "colorHex": "#1565C0",
       "enabled": true
@@ -34,52 +20,8 @@
   },
   "completions": {
     "0": {
-      "2025-11-02": {"iscompleted": null},
-      "2025-11-01": {"iscompleted": null},
-      "2025-10-31": {"iscompleted": null},
-      "2025-10-30": {"iscompleted": null},
-      "2025-10-29": {"iscompleted": null},
-      "2025-10-28": {"iscompleted": null},
-      "2025-10-27": {"iscompleted": null},
-      "2025-10-26": {"iscompleted": null},
-      "2025-10-25": {"iscompleted": null},
-      "2025-10-24": {"iscompleted": null}
     },
     "1": {
-      "2025-11-02": {"iscompleted": null},
-      "2025-11-01": {"iscompleted": null},
-      "2025-10-31": {"iscompleted": null},
-      "2025-10-30": {"iscompleted": null},
-      "2025-10-29": {"iscompleted": null},
-      "2025-10-28": {"iscompleted": null},
-      "2025-10-27": {"iscompleted": null},
-      "2025-10-26": {"iscompleted": null},
-      "2025-10-25": {"iscompleted": null},
-      "2025-10-24": {"iscompleted": null}
-    },
-    "2": {
-      "2025-11-02": {"iscompleted": null},
-      "2025-11-01": {"iscompleted": null},
-      "2025-10-31": {"iscompleted": null},
-      "2025-10-30": {"iscompleted": null},
-      "2025-10-29": {"iscompleted": null},
-      "2025-10-28": {"iscompleted": null},
-      "2025-10-27": {"iscompleted": null},
-      "2025-10-26": {"iscompleted": null},
-      "2025-10-25": {"iscompleted": null},
-      "2025-10-24": {"iscompleted": null}
-    },
-    "3": {
-      "2025-11-02": {"iscompleted": null},
-      "2025-11-01": {"iscompleted": null},
-      "2025-10-31": {"iscompleted": null},
-      "2025-10-30": {"iscompleted": null},
-      "2025-10-29": {"iscompleted": null},
-      "2025-10-28": {"iscompleted": null},
-      "2025-10-27": {"iscompleted": null},
-      "2025-10-26": {"iscompleted": null},
-      "2025-10-25": {"iscompleted": null},
-      "2025-10-24": {"iscompleted": null}
     }
   }
 }

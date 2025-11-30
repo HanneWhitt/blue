@@ -33,13 +33,11 @@ fun ResetConfirmationScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Are you sure you want to reset Blue? This will delete all your habit data, and cannot be reversed.",
+            text = "Are you sure you want to reset Blue? This will delete your habit data, and cannot be reversed.",
             textAlign = TextAlign.Center,
-            fontSize = 14.sp,
-            modifier = Modifier.padding(bottom = 16.dp)
+            fontSize = 10.sp,
+            modifier = Modifier.padding(bottom = 10.dp)
         )
-
-        Spacer(modifier = Modifier.height(8.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
