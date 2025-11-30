@@ -4,25 +4,29 @@
       "name": "Up by 7:05",
       "abbreviation": "UP7",
       "type": "Binary",
-      "colorHex": "#1565C0"
+      "colorHex": "#1565C0",
+      "enabled": true
     },
     "1": {
       "name": "Leave work 18:30",
       "abbreviation": "LW6.5",
       "type": "Binary",
-      "colorHex": "#1565C0"
+      "colorHex": "#1565C0",
+      "enabled": true
     },
     "2": {
       "name": "Down by 10:05",
       "abbreviation": "DB10",
       "type": "Binary",
-      "colorHex": "#1565C0"
+      "colorHex": "#1565C0",
+      "enabled": true
     },
     "3": {
       "name": "NP",
       "abbreviation": "NP",
       "type": "Binary",
-      "colorHex": "#1565C0"
+      "colorHex": "#1565C0",
+      "enabled": true
     }
   },
   "completions": {

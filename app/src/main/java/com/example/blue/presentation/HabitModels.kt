@@ -21,7 +21,8 @@ sealed class Habit {
         override val id: Int,
         override val name: String,
         override val abbreviation: String,
-        val color: Color
+        val color: Color,
+        val enabled: Boolean = true
     ) : Habit()
 
     data class TimeBasedHabit(
@@ -29,7 +30,8 @@ sealed class Habit {
         override val name: String,
         override val abbreviation: String,
         val color: Color,
-        val targetTime: String = "12:00"  // Target time in HH:mm format
+        val targetTime: String = "12:00",  // Target time in HH:mm format
+        val enabled: Boolean = true
     ) : Habit()
 
     data class MultipleHabit(
@@ -37,7 +39,8 @@ sealed class Habit {
         override val name: String,
         override val abbreviation: String,
         val color: Color,
-        val completionsPerDay: Int = 3  // Default to 3 completions per day
+        val completionsPerDay: Int = 3,  // Default to 3 completions per day
+        val enabled: Boolean = true
     ) : Habit()
 }
 

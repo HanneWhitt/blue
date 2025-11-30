@@ -55,7 +55,7 @@ fun HabitTrackerDisplay(
     } }
 
     // Spacing configuration variables
-    val outerMarginPx = 10f      // Distance from screen edge to outer habit layer
+    val outerMarginPx = 7f      // Distance from screen edge to outer habit layer
     val innerMarginPx = 40f      // Distance from screen center to inner habit layer
 
     // Define your three colors
@@ -76,9 +76,20 @@ fun HabitTrackerDisplay(
     // Mutable completions state
     var completions by remember { mutableStateOf(habitData.completions) }
 
+    // Filter out disabled habits for display
+    val enabledHabits by remember { derivedStateOf {
+        habitData.habits.filter { habit ->
+            when (habit) {
+                is Habit.BinaryHabit -> habit.enabled
+                is Habit.TimeBasedHabit -> habit.enabled
+                is Habit.MultipleHabit -> habit.enabled
+            }
+        }
+    } }
+
     // Derived habit abbreviation for selected habit
     val selectedHabitAbbreviation by remember { derivedStateOf {
-        habitData.habits.getOrNull(selectedHabitIndex)?.abbreviation ?: ""
+        enabledHabits.getOrNull(selectedHabitIndex)?.abbreviation ?: ""
     } }
 
     // Reload data when date changes
@@ -91,7 +102,7 @@ fun HabitTrackerDisplay(
     val screenSize = minOf(configuration.screenWidthDp.dp, configuration.screenHeightDp.dp)
     val focusRequester = remember { FocusRequester() }
 
-    val numHabits = habitData.habits.size
+    val numHabits = enabledHabits.size
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -262,7 +273,7 @@ fun HabitTrackerDisplay(
                                 onNavigateToManagement()
                             } else {
                                 // Find the selected habit's ID
-                                val selectedHabit = habitData.habits.getOrNull(selectedHabitIndex)
+                                val selectedHabit = enabledHabits.getOrNull(selectedHabitIndex)
                                 if (selectedHabit != null) {
                                     // Check if habit type is implemented
                                     when (selectedHabit) {
@@ -366,7 +377,7 @@ fun HabitTrackerDisplay(
                 center = center,
                 maxRadius = maxRadius,
                 innerMargin = innerMarginPx,
-                habits = habitData.habits,
+                habits = enabledHabits,
                 completions = completions,
                 darkBlue = darkBlue,
                 paleBlue = paleBlue,
@@ -392,27 +403,27 @@ fun HabitTrackerDisplay(
 
         // Habit abbreviation at top, right of center
         // Calculate position: vertically aligned with middle of habit stack
-        val numHabits = habitData.habits.size
+        val numHabitsForLayout = enabledHabits.size
         val maxRadius = screenSize / 2 - outerMarginPx.dp
         val innerMargin = innerMarginPx.dp
         val availableRadius = maxRadius - innerMargin
-        val habitLayerThickness = if (numHabits > 0) availableRadius / numHabits else 0.dp
+        val habitLayerThickness = if (numHabitsForLayout > 0) availableRadius / numHabitsForLayout else 0.dp
         val radGapProportion = 0.8f
 
-        val habitTextYOffset = if (numHabits > 0) {
-            if (numHabits % 2 == 1) {
+        val habitTextYOffset = if (numHabitsForLayout > 0) {
+            if (numHabitsForLayout % 2 == 1) {
                 // Odd number: align with center of middle habit
-                val middleIndex = numHabits / 2
-                val reversedIndex = numHabits - 1 - middleIndex
+                val middleIndex = numHabitsForLayout / 2
+                val reversedIndex = numHabitsForLayout - 1 - middleIndex
                 val outerRadius = maxRadius - habitLayerThickness * reversedIndex
                 val innerRadius = outerRadius - habitLayerThickness * radGapProportion
                 -(outerRadius + innerRadius) / 2
             } else {
                 // Even number: align with gap between middle two habits
-                val lowerMiddleIndex = numHabits / 2 - 1
-                val upperMiddleIndex = numHabits / 2
-                val reversedIndexLower = numHabits - 1 - lowerMiddleIndex
-                val reversedIndexUpper = numHabits - 1 - upperMiddleIndex
+                val lowerMiddleIndex = numHabitsForLayout / 2 - 1
+                val upperMiddleIndex = numHabitsForLayout / 2
+                val reversedIndexLower = numHabitsForLayout - 1 - lowerMiddleIndex
+                val reversedIndexUpper = numHabitsForLayout - 1 - upperMiddleIndex
                 val outerRadiusLower = maxRadius - habitLayerThickness * reversedIndexLower
                 val outerRadiusUpper = maxRadius - habitLayerThickness * reversedIndexUpper
                 val innerRadiusUpper = outerRadiusUpper - habitLayerThickness * radGapProportion

@@ -8,6 +8,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -53,7 +57,7 @@ fun WearApp() {
                 }
 
                 composable("manage") {
-                    val habitData = loadHabitData(context, LocalDate.now(), 10)
+                    var habitData by remember { mutableStateOf(loadHabitData(context, LocalDate.now(), 10)) }
 
                     HabitManagementScreen(
                         habitData = habitData,
@@ -62,6 +66,31 @@ fun WearApp() {
                         },
                         onEditHabit = { habit ->
                             navController.navigate("edit/${habit.id}")
+                        },
+                        onToggleEnabled = { habit, newEnabled ->
+                            val habitType = when (habit) {
+                                is Habit.BinaryHabit -> HabitType.BINARY
+                                is Habit.TimeBasedHabit -> HabitType.TIME_BASED
+                                is Habit.MultipleHabit -> HabitType.MULTIPLE
+                            }
+                            val completionsPerDay = if (habit is Habit.MultipleHabit) habit.completionsPerDay else 3
+                            val targetTime = if (habit is Habit.TimeBasedHabit) habit.targetTime else "12:00"
+
+                            updateHabit(
+                                context,
+                                LocalDate.now(),
+                                10,
+                                habit.id,
+                                habit.name,
+                                habit.abbreviation,
+                                habitType,
+                                completionsPerDay,
+                                targetTime,
+                                newEnabled
+                            )
+
+                            // Reload the data to refresh the UI
+                            habitData = loadHabitData(context, LocalDate.now(), 10)
                         }
                     )
                 }
@@ -81,10 +110,15 @@ fun WearApp() {
                         existingHabit = existingHabit,
                         onSave = { name, abbreviation, type, completionsPerDay, targetTime ->
                             if (existingHabit != null) {
-                                // Update existing habit
-                                updateHabit(context, LocalDate.now(), 10, habitId, name, abbreviation, type, completionsPerDay, targetTime)
+                                // Update existing habit - preserve enabled state
+                                val currentEnabled = when (existingHabit) {
+                                    is Habit.BinaryHabit -> existingHabit.enabled
+                                    is Habit.TimeBasedHabit -> existingHabit.enabled
+                                    is Habit.MultipleHabit -> existingHabit.enabled
+                                }
+                                updateHabit(context, LocalDate.now(), 10, habitId, name, abbreviation, type, completionsPerDay, targetTime, currentEnabled)
                             } else {
-                                // Create new habit
+                                // Create new habit (enabled defaults to true)
                                 createHabit(context, LocalDate.now(), 10, name, abbreviation, type, completionsPerDay, targetTime)
                             }
                             navController.popBackStack()

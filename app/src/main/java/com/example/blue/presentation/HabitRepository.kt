@@ -55,12 +55,14 @@ fun parseHabitDataJson(jsonString: String, currentDate: LocalDate, numDays: Int)
             "Binary" -> {
                 val colorHex = habitJson.getString("colorHex")
                 val color = Color(android.graphics.Color.parseColor(colorHex))
+                val enabled = habitJson.optBoolean("enabled", true)  // Default to true for backward compatibility
                 habits.add(
                     Habit.BinaryHabit(
                         id = habitId,
                         name = name,
                         abbreviation = abbreviation,
-                        color = color
+                        color = color,
+                        enabled = enabled
                     )
                 )
             }
@@ -68,13 +70,15 @@ fun parseHabitDataJson(jsonString: String, currentDate: LocalDate, numDays: Int)
                 val colorHex = habitJson.getString("colorHex")
                 val color = Color(android.graphics.Color.parseColor(colorHex))
                 val targetTime = habitJson.optString("targetTime", "12:00")
+                val enabled = habitJson.optBoolean("enabled", true)  // Default to true for backward compatibility
                 habits.add(
                     Habit.TimeBasedHabit(
                         id = habitId,
                         name = name,
                         abbreviation = abbreviation,
                         color = color,
-                        targetTime = targetTime
+                        targetTime = targetTime,
+                        enabled = enabled
                     )
                 )
             }
@@ -82,13 +86,15 @@ fun parseHabitDataJson(jsonString: String, currentDate: LocalDate, numDays: Int)
                 val colorHex = habitJson.getString("colorHex")
                 val color = Color(android.graphics.Color.parseColor(colorHex))
                 val completionsPerDay = habitJson.optInt("completionsPerDay", 3)  // Default to 3
+                val enabled = habitJson.optBoolean("enabled", true)  // Default to true for backward compatibility
                 habits.add(
                     Habit.MultipleHabit(
                         id = habitId,
                         name = name,
                         abbreviation = abbreviation,
                         color = color,
-                        completionsPerDay = completionsPerDay
+                        completionsPerDay = completionsPerDay,
+                        enabled = enabled
                     )
                 )
             }
@@ -187,16 +193,19 @@ fun saveHabitDataToFile(context: Context, habitData: HabitData, currentDate: Loc
                 is Habit.BinaryHabit -> {
                     habitJson.put("type", "Binary")
                     habitJson.put("colorHex", "#1565C0")
+                    habitJson.put("enabled", habit.enabled)
                 }
                 is Habit.TimeBasedHabit -> {
                     habitJson.put("type", "Time-based")
                     habitJson.put("colorHex", "#1565C0")
                     habitJson.put("targetTime", habit.targetTime)
+                    habitJson.put("enabled", habit.enabled)
                 }
                 is Habit.MultipleHabit -> {
                     habitJson.put("type", "Multiple")
                     habitJson.put("colorHex", "#1565C0")
                     habitJson.put("completionsPerDay", habit.completionsPerDay)
+                    habitJson.put("enabled", habit.enabled)
                 }
             }
 
@@ -316,7 +325,8 @@ fun updateHabit(
     abbreviation: String,
     type: HabitType,
     completionsPerDay: Int = 3,
-    targetTime: String = "12:00"
+    targetTime: String = "12:00",
+    enabled: Boolean = true
 ): HabitData {
     val habitData = loadHabitData(context, currentDate, numDays)
 
@@ -325,9 +335,9 @@ fun updateHabit(
     val updatedHabits = habitData.habits.map { habit ->
         if (habit.id == habitId) {
             when (type) {
-                HabitType.BINARY -> Habit.BinaryHabit(habitId, name, abbreviation, color)
-                HabitType.TIME_BASED -> Habit.TimeBasedHabit(habitId, name, abbreviation, color, targetTime)
-                HabitType.MULTIPLE -> Habit.MultipleHabit(habitId, name, abbreviation, color, completionsPerDay)
+                HabitType.BINARY -> Habit.BinaryHabit(habitId, name, abbreviation, color, enabled)
+                HabitType.TIME_BASED -> Habit.TimeBasedHabit(habitId, name, abbreviation, color, targetTime, enabled)
+                HabitType.MULTIPLE -> Habit.MultipleHabit(habitId, name, abbreviation, color, completionsPerDay, enabled)
             }
         } else {
             habit
