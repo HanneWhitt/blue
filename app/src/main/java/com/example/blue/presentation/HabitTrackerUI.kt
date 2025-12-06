@@ -81,15 +81,17 @@ fun HabitTrackerDisplay(
     // Get numDays from settings
     val numDays = habitData.settings.noDays
 
-    // Filter out disabled habits for display
+    // Filter out disabled habits for display and sort by displayIndex
     val enabledHabits by remember { derivedStateOf {
-        habitData.habits.filter { habit ->
-            when (habit) {
-                is Habit.BinaryHabit -> habit.enabled
-                is Habit.TimeBasedHabit -> habit.enabled
-                is Habit.MultipleHabit -> habit.enabled
+        habitData.habits
+            .filter { habit ->
+                when (habit) {
+                    is Habit.BinaryHabit -> habit.enabled
+                    is Habit.TimeBasedHabit -> habit.enabled
+                    is Habit.MultipleHabit -> habit.enabled
+                }
             }
-        }
+            .sortedBy { it.displayIndex }
     } }
 
     // Derived habit abbreviation for selected habit

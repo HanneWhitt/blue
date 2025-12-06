@@ -16,13 +16,15 @@ sealed class Habit {
     abstract val id: Int
     abstract val name: String
     abstract val abbreviation: String
+    abstract val displayIndex: Int
 
     data class BinaryHabit(
         override val id: Int,
         override val name: String,
         override val abbreviation: String,
         val color: Color,
-        val enabled: Boolean = true
+        val enabled: Boolean = true,
+        override val displayIndex: Int = id
     ) : Habit()
 
     data class TimeBasedHabit(
@@ -31,7 +33,8 @@ sealed class Habit {
         override val abbreviation: String,
         val color: Color,
         val targetTime: String = "12:00",  // Target time in HH:mm format
-        val enabled: Boolean = true
+        val enabled: Boolean = true,
+        override val displayIndex: Int = id
     ) : Habit()
 
     data class MultipleHabit(
@@ -40,7 +43,8 @@ sealed class Habit {
         override val abbreviation: String,
         val color: Color,
         val completionsPerDay: Int = 3,  // Default to 3 completions per day
-        val enabled: Boolean = true
+        val enabled: Boolean = true,
+        override val displayIndex: Int = id
     ) : Habit()
 }
 

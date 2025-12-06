@@ -93,6 +93,9 @@ fun WearApp() {
                         },
                         onNavigateToSettings = {
                             navController.navigate("settings")
+                        },
+                        onReorderHabits = { fromIndex, toIndex ->
+                            habitData = reorderHabits(context, LocalDate.now(), fromIndex, toIndex)
                         }
                     )
                 }

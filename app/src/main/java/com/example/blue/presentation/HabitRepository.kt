@@ -61,13 +61,15 @@ fun parseHabitDataJson(jsonString: String, currentDate: LocalDate): HabitData {
                 val colorHex = habitJson.getString("colorHex")
                 val color = Color(android.graphics.Color.parseColor(colorHex))
                 val enabled = habitJson.optBoolean("enabled", true)  // Default to true for backward compatibility
+                val displayIndex = habitJson.optInt("displayIndex", habitId)  // Default to habitId if missing
                 habits.add(
                     Habit.BinaryHabit(
                         id = habitId,
                         name = name,
                         abbreviation = abbreviation,
                         color = color,
-                        enabled = enabled
+                        enabled = enabled,
+                        displayIndex = displayIndex
                     )
                 )
             }
@@ -76,6 +78,7 @@ fun parseHabitDataJson(jsonString: String, currentDate: LocalDate): HabitData {
                 val color = Color(android.graphics.Color.parseColor(colorHex))
                 val targetTime = habitJson.optString("targetTime", "12:00")
                 val enabled = habitJson.optBoolean("enabled", true)  // Default to true for backward compatibility
+                val displayIndex = habitJson.optInt("displayIndex", habitId)  // Default to habitId if missing
                 habits.add(
                     Habit.TimeBasedHabit(
                         id = habitId,
@@ -83,7 +86,8 @@ fun parseHabitDataJson(jsonString: String, currentDate: LocalDate): HabitData {
                         abbreviation = abbreviation,
                         color = color,
                         targetTime = targetTime,
-                        enabled = enabled
+                        enabled = enabled,
+                        displayIndex = displayIndex
                     )
                 )
             }
@@ -92,6 +96,7 @@ fun parseHabitDataJson(jsonString: String, currentDate: LocalDate): HabitData {
                 val color = Color(android.graphics.Color.parseColor(colorHex))
                 val completionsPerDay = habitJson.optInt("completionsPerDay", 3)  // Default to 3
                 val enabled = habitJson.optBoolean("enabled", true)  // Default to true for backward compatibility
+                val displayIndex = habitJson.optInt("displayIndex", habitId)  // Default to habitId if missing
                 habits.add(
                     Habit.MultipleHabit(
                         id = habitId,
@@ -99,7 +104,8 @@ fun parseHabitDataJson(jsonString: String, currentDate: LocalDate): HabitData {
                         abbreviation = abbreviation,
                         color = color,
                         completionsPerDay = completionsPerDay,
-                        enabled = enabled
+                        enabled = enabled,
+                        displayIndex = displayIndex
                     )
                 )
             }
@@ -205,18 +211,21 @@ fun saveHabitDataToFile(context: Context, habitData: HabitData, currentDate: Loc
                     habitJson.put("type", "Binary")
                     habitJson.put("colorHex", "#1565C0")
                     habitJson.put("enabled", habit.enabled)
+                    habitJson.put("displayIndex", habit.displayIndex)
                 }
                 is Habit.TimeBasedHabit -> {
                     habitJson.put("type", "Time-based")
                     habitJson.put("colorHex", "#1565C0")
                     habitJson.put("targetTime", habit.targetTime)
                     habitJson.put("enabled", habit.enabled)
+                    habitJson.put("displayIndex", habit.displayIndex)
                 }
                 is Habit.MultipleHabit -> {
                     habitJson.put("type", "Multiple")
                     habitJson.put("colorHex", "#1565C0")
                     habitJson.put("completionsPerDay", habit.completionsPerDay)
                     habitJson.put("enabled", habit.enabled)
+                    habitJson.put("displayIndex", habit.displayIndex)
                 }
             }
 
@@ -311,9 +320,9 @@ fun createHabit(
     // Create the new habit based on type
     val color = Color(android.graphics.Color.parseColor("#1565C0"))
     val newHabit = when (type) {
-        HabitType.BINARY -> Habit.BinaryHabit(nextId, name, abbreviation, color)
-        HabitType.TIME_BASED -> Habit.TimeBasedHabit(nextId, name, abbreviation, color, targetTime)
-        HabitType.MULTIPLE -> Habit.MultipleHabit(nextId, name, abbreviation, color, completionsPerDay)
+        HabitType.BINARY -> Habit.BinaryHabit(nextId, name, abbreviation, color, displayIndex = nextId)
+        HabitType.TIME_BASED -> Habit.TimeBasedHabit(nextId, name, abbreviation, color, targetTime, displayIndex = nextId)
+        HabitType.MULTIPLE -> Habit.MultipleHabit(nextId, name, abbreviation, color, completionsPerDay, displayIndex = nextId)
     }
 
     // Add new habit to the list
@@ -344,9 +353,9 @@ fun updateHabit(
     val updatedHabits = habitData.habits.map { habit ->
         if (habit.id == habitId) {
             when (type) {
-                HabitType.BINARY -> Habit.BinaryHabit(habitId, name, abbreviation, color, enabled)
-                HabitType.TIME_BASED -> Habit.TimeBasedHabit(habitId, name, abbreviation, color, targetTime, enabled)
-                HabitType.MULTIPLE -> Habit.MultipleHabit(habitId, name, abbreviation, color, completionsPerDay, enabled)
+                HabitType.BINARY -> Habit.BinaryHabit(habitId, name, abbreviation, color, enabled, habit.displayIndex)
+                HabitType.TIME_BASED -> Habit.TimeBasedHabit(habitId, name, abbreviation, color, targetTime, enabled, habit.displayIndex)
+                HabitType.MULTIPLE -> Habit.MultipleHabit(habitId, name, abbreviation, color, completionsPerDay, enabled, habit.displayIndex)
             }
         } else {
             habit
@@ -377,7 +386,8 @@ fun deleteHabit(
     // Save to file
     saveHabitDataToFile(context, updatedHabitData, currentDate)
 
-    return updatedHabitData
+    // Compact display indexes to fill gaps
+    return compactDisplayIndexes(context, currentDate)
 }
 
 fun resetHabitData(context: Context): Boolean {
@@ -402,5 +412,59 @@ fun resetHabitData(context: Context): Boolean {
         e.printStackTrace()
         false
     }
+}
+
+fun reorderHabits(
+    context: Context,
+    currentDate: LocalDate,
+    fromIndex: Int,
+    toIndex: Int
+): HabitData {
+    val habitData = loadHabitData(context, currentDate)
+    val sortedHabits = habitData.habits.sortedBy { it.displayIndex }
+
+    if (fromIndex == toIndex || fromIndex !in sortedHabits.indices || toIndex !in sortedHabits.indices) {
+        return habitData
+    }
+
+    val mutableList = sortedHabits.toMutableList()
+    val movedHabit = mutableList.removeAt(fromIndex)
+    mutableList.add(toIndex, movedHabit)
+
+    // Reassign displayIndex to match new positions
+    val updatedHabits = mutableList.mapIndexed { index, habit ->
+        when (habit) {
+            is Habit.BinaryHabit -> habit.copy(displayIndex = index)
+            is Habit.TimeBasedHabit -> habit.copy(displayIndex = index)
+            is Habit.MultipleHabit -> habit.copy(displayIndex = index)
+        }
+    }
+
+    val updatedHabitData = HabitData(updatedHabits, habitData.completions, habitData.settings)
+    saveHabitDataToFile(context, updatedHabitData, currentDate)
+
+    return updatedHabitData
+}
+
+fun compactDisplayIndexes(
+    context: Context,
+    currentDate: LocalDate
+): HabitData {
+    val habitData = loadHabitData(context, currentDate)
+    if (habitData.habits.isEmpty()) return habitData
+
+    val sortedHabits = habitData.habits.sortedBy { it.displayIndex }
+    val compactedHabits = sortedHabits.mapIndexed { index, habit ->
+        when (habit) {
+            is Habit.BinaryHabit -> habit.copy(displayIndex = index)
+            is Habit.TimeBasedHabit -> habit.copy(displayIndex = index)
+            is Habit.MultipleHabit -> habit.copy(displayIndex = index)
+        }
+    }
+
+    val updatedHabitData = HabitData(compactedHabits, habitData.completions, habitData.settings)
+    saveHabitDataToFile(context, updatedHabitData, currentDate)
+
+    return updatedHabitData
 }
 
