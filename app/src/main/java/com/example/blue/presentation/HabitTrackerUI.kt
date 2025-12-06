@@ -321,15 +321,13 @@ fun HabitTrackerDisplay(
                                                     vibrate(context)
                                                 }
 
-                                                // Only add entry if count > 0
-                                                if (newCount > 0) {
-                                                    newCompletions.add(
-                                                        existingCompletion.copy(
-                                                            isCompleted = null,  // Not used for Multiple habits
-                                                            completionCount = newCount
-                                                        )
+                                                // Always add entry, even when count is 0, to explicitly save the reset state
+                                                newCompletions.add(
+                                                    existingCompletion.copy(
+                                                        isCompleted = null,  // Not used for Multiple habits
+                                                        completionCount = newCount
                                                     )
-                                                }
+                                                )
                                             } else {
                                                 // No existing entry, create new one with count 1
                                                 vibrate(context)
