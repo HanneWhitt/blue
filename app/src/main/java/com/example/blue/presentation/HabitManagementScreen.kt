@@ -8,6 +8,7 @@ import android.os.Vibrator
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -150,13 +151,6 @@ private fun HabitItem(
                 overflow = TextOverflow.Ellipsis
             )
         },
-        secondaryLabel = {
-            Text(
-                text = habit.abbreviation,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
         checked = isEnabled,
         onCheckedChange = { newEnabled ->
             if (!isDragging) {
@@ -176,7 +170,8 @@ private fun HabitItem(
         },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .height(40.dp)
+            .padding(horizontal = 16.dp, vertical = 2.dp)
             .zIndex(if (isDragging) 1f else 0f)
             .graphicsLayer {
                 translationY = offsetY
