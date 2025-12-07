@@ -44,9 +44,6 @@ fun HabitTrackerDisplay(
     var scrollAccumulator by remember { mutableStateOf(0f) }
     val scrollThreshold = 25f  // Adjust this value to control rotary scroll sensitivity
 
-    var touchScrollAccumulator by remember { mutableStateOf(0f) }
-    val touchScrollThreshold = 50f  // Adjust this value to control touch scroll sensitivity
-
     var horizontalSwipeAccumulator by remember { mutableStateOf(0f) }
     val horizontalSwipeThreshold = 80f  // Threshold for left swipe to navigate
 
@@ -212,42 +209,6 @@ fun HabitTrackerDisplay(
                         } else if (horizontalSwipeAccumulator >= horizontalSwipeThreshold) {
                             // Reset if swiping right (opposite direction)
                             horizontalSwipeAccumulator = 0f
-                        }
-
-                        // Accumulate vertical drag (negative dragAmount.y = drag up, positive = drag down)
-                        touchScrollAccumulator += dragAmount.y
-
-                        // Check if we've accumulated enough to trigger a selection change
-                        if (touchScrollAccumulator >= touchScrollThreshold) {
-                            // Drag down: decrease habit index (same as scroll down)
-                            if (selectedHabitIndex > 0) {
-                                selectedHabitIndex--
-                            } else if (selectedDayIndex == 0 && selectedHabitIndex == 0) {
-                                // At first position, go to settings
-                                selectedHabitIndex = -1
-                            } else {
-                                // Wrapped to previous day
-                                selectedHabitIndex = numHabits - 1
-                                if (selectedDayIndex > 0) {
-                                    selectedDayIndex--
-                                }
-                            }
-                            touchScrollAccumulator = 0f
-                        } else if (touchScrollAccumulator <= -touchScrollThreshold) {
-                            // Drag up: increase habit index (same as scroll up)
-                            if (selectedHabitIndex < 0) {
-                                // From settings, go back to first habit
-                                selectedHabitIndex = 0
-                            } else if (selectedHabitIndex < numHabits - 1) {
-                                selectedHabitIndex++
-                            } else {
-                                // Wrapped to next day
-                                selectedHabitIndex = 0
-                                if (selectedDayIndex < numDays - 1) {
-                                    selectedDayIndex++
-                                }
-                            }
-                            touchScrollAccumulator = 0f
                         }
                     }
                 }
