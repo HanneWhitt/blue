@@ -403,7 +403,8 @@ fun HabitTrackerDisplay(
                 darkGreen = darkGreen,
                 selectedDayIndex = selectedDayIndex,
                 selectedHabitIndex = selectedHabitIndex,
-                numDays = numDays
+                numDays = numDays,
+                currentDate = currentDate
             )
         }
 

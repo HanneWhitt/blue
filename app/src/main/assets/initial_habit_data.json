@@ -8,14 +8,16 @@
       "abbreviation": "H1",
       "type": "Binary",
       "colorHex": "#1565C0",
-      "enabled": true
+      "enabled": true,
+      "displayIndex": 0
     },
     "1": {
       "name": "Habit2",
       "abbreviation": "H2",
       "type": "Binary",
       "colorHex": "#1565C0",
-      "enabled": true
+      "enabled": true,
+      "displayIndex": 1
     }
   },
   "completions": {

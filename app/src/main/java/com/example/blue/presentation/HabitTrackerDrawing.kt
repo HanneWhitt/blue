@@ -538,7 +538,8 @@ fun DrawScope.drawHabitTracker(
     darkGreen: Color,
     selectedDayIndex: Int,
     selectedHabitIndex: Int,
-    numDays: Int
+    numDays: Int,
+    currentDate: java.time.LocalDate
 ) {
     val geometry = DisplayGeometry(
         center = center,
@@ -573,9 +574,18 @@ fun DrawScope.drawHabitTracker(
             // Draw based on habit type
             when (habit) {
                 is Habit.MultipleHabit -> {
+                    // Calculate the actual date for this day index
+                    val dayDate = currentDate.minusDays(dayIndex.toLong())
+                    val habitStartDate = java.time.LocalDate.parse(habit.startDate)
+                    val isBeforeStartDate = dayDate.isBefore(habitStartDate)
+
                     val completionCount = completion?.completionCount ?: 0
                     val completedColor = if (isSelected) darkGreen else darkBlue
-                    val notCompletedColor = if (isSelected) lightGreen else paleGrey
+                    val notCompletedColor = if (isSelected) {
+                        lightGreen
+                    } else {
+                        if (isBeforeStartDate) paleGrey else paleBlue  // Before start: gray, after: light blue
+                    }
                     val fillFrac = completionCount.toFloat() / habit.completionsPerDay.toFloat()
 
                     drawAdaptiveRoundedSegment(
@@ -595,6 +605,11 @@ fun DrawScope.drawHabitTracker(
                 }
                 is Habit.TimeBasedHabit -> {
                     // Time-based habits: color based on completion time vs target time
+                    // Calculate the actual date for this day index
+                    val dayDate = currentDate.minusDays(dayIndex.toLong())
+                    val habitStartDate = java.time.LocalDate.parse(habit.startDate)
+                    val isBeforeStartDate = dayDate.isBefore(habitStartDate)
+
                     val segmentColor = if (completion?.completionTime != null) {
                         // Has a completion time recorded
                         val completionTime = completion.completionTime
@@ -610,7 +625,11 @@ fun DrawScope.drawHabitTracker(
                         }
                     } else {
                         // No completion time recorded
-                        if (isSelected) lightGreen else paleGrey
+                        if (isSelected) {
+                            lightGreen
+                        } else {
+                            if (isBeforeStartDate) paleGrey else paleBlue  // Before start: gray, after: light blue
+                        }
                     }
 
                     drawAdaptiveRoundedSegment(
@@ -668,16 +687,21 @@ fun DrawScope.drawHabitTracker(
                 }
                 is Habit.BinaryHabit -> {
                     // Binary habits use isCompleted flag
+                    // Calculate the actual date for this day index
+                    val dayDate = currentDate.minusDays(dayIndex.toLong())
+                    val habitStartDate = java.time.LocalDate.parse(habit.startDate)
+                    val isBeforeStartDate = dayDate.isBefore(habitStartDate)
+
                     val segmentColor = if (isSelected) {
                         when (completion?.isCompleted) {
                             true -> darkGreen
                             else -> lightGreen
                         }
                     } else {
-                        when (completion?.isCompleted) {
-                            null -> paleGrey
-                            true -> darkBlue
-                            false -> paleBlue
+                        when {
+                            completion?.isCompleted == true -> darkBlue
+                            isBeforeStartDate -> paleGrey  // Before start date: gray
+                            else -> paleBlue  // On or after start date with no positive completion: light blue
                         }
                     }
 
