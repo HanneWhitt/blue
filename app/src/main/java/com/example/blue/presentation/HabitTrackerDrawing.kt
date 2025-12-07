@@ -15,10 +15,12 @@ import androidx.compose.ui.graphics.nativeCanvas
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
+import kotlin.math.tan
 import kotlin.math.asin
 import kotlin.math.sqrt
 import kotlin.math.min
 import kotlin.math.max
+import kotlin.math.abs
 
 
 fun Rad(deg: Float): Double {
@@ -552,6 +554,17 @@ fun DrawScope.drawHabitTracker(
         gapAngle = 45f
     )
 
+    // Calculate time text dimensions for later use
+    val timeTextSize = 12f
+    val sampleTimeText = "0000"
+    val timeTextPaint = android.graphics.Paint().apply {
+        textSize = timeTextSize
+        textAlign = android.graphics.Paint.Align.CENTER
+    }
+    val time_text_pixel_width = timeTextPaint.measureText(sampleTimeText)
+    val fontMetrics = timeTextPaint.fontMetrics
+    val time_text_pixel_height = fontMetrics.descent - fontMetrics.ascent
+
     // Draw each habit layer (habit 0 is innermost, highest index is outermost)
     habits.forEachIndexed { habitIndex, habit ->
         val innerRadius = geometry.habitInnerRadii[habitIndex]
@@ -647,13 +660,19 @@ fun DrawScope.drawHabitTracker(
 
                     // Draw completion time text if this habit is selected and has a time
                     if (habitIndex == selectedHabitIndex && completion?.completionTime != null) {
-                        val time = completion.completionTime
+                        val time = completion.completionTime.replace(":", "")
                         val midAngle = dayStartAngle - (geometry.segmentAngle / 2f)
                         val angleRad = Math.toRadians(midAngle.toDouble())
                         val midRadius = ((innerRadius + outerRadius) / 2f)
+                        val text_lower_edge_radius = midRadius - 0.5*time_text_pixel_height
+                        val max_text_lower_edge_width = 2*text_lower_edge_radius*tan(0.5*Rad(abs(geometry.segmentAngle)))
 
-                        // Calculate text rotation (perpendicular to radial line)
-                        var textRotation = midAngle + 90f
+                        var textRotation = midAngle
+
+                        if (time_text_pixel_width < max_text_lower_edge_width) {
+                            // make text rotation perpendicular to radial line
+                            textRotation += 90f
+                        }
                         // Normalize angle to 0-360 range
                         textRotation = ((textRotation % 360f) + 360f) % 360f
                         // Flip text 180° if it's upside down (bottom half of screen)
@@ -664,7 +683,7 @@ fun DrawScope.drawHabitTracker(
                         drawIntoCanvas { canvas ->
                             val paint = android.graphics.Paint().apply {
                                 color = android.graphics.Color.BLACK
-                                textSize = 14f
+                                textSize = timeTextSize
                                 textAlign = android.graphics.Paint.Align.CENTER
                             }
 
