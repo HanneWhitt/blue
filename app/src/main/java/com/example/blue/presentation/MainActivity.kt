@@ -4,10 +4,14 @@ package com.example.blue.presentation
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -16,11 +20,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
+import androidx.wear.compose.navigation.currentBackStackEntryAsState
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import java.time.LocalDate
+import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,6 +45,10 @@ fun WearApp() {
     MaterialTheme {
         val navController = rememberSwipeDismissableNavController()
         val context = LocalContext.current
+        var previousRoute by remember { mutableStateOf<String?>(null) }
+
+        val navBackStackEntry by navController.currentBackStackEntryAsState()
+        val currentRoute = navBackStackEntry?.destination?.route
 
         Box(
             modifier = Modifier
@@ -48,56 +61,110 @@ fun WearApp() {
                 startDestination = "tracker"
             ) {
                 composable("tracker") {
-                    HabitTrackerDisplay(
-                        onNavigateToManagement = { navController.navigate("manage") },
-                        onNavigateToTimeEntry = { habitId, dayIndex ->
-                            navController.navigate("time-entry/$habitId/$dayIndex")
+                    val density = LocalDensity.current
+                    val offsetX = remember { Animatable(0f) }
+                    val wasFromManage = remember { previousRoute == "manage" }
+
+                    LaunchedEffect(Unit) {
+                        if (wasFromManage) {
+                            // Animate in from left when coming back from manage
+                            val screenWidth = with(density) { 300.dp.toPx() }
+                            offsetX.snapTo(-screenWidth)
+                            offsetX.animateTo(
+                                targetValue = 0f,
+                                animationSpec = tween(durationMillis = 300)
+                            )
+                        } else {
+                            // No animation, just ensure we're at position 0
+                            offsetX.snapTo(0f)
                         }
-                    )
+                        previousRoute = "tracker"
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                    ) {
+                        HabitTrackerDisplay(
+                            onNavigateToManagement = {
+                                navController.navigate("manage")
+                            },
+                            onNavigateToTimeEntry = { habitId, dayIndex ->
+                                navController.navigate("time-entry/$habitId/$dayIndex")
+                            }
+                        )
+                    }
                 }
 
                 composable("manage") {
-                    var habitData by remember { mutableStateOf(loadHabitData(context, LocalDate.now())) }
+                    val density = LocalDensity.current
+                    val offsetX = remember { Animatable(0f) }
+                    val wasFromTracker = remember { previousRoute == "tracker" }
 
-                    HabitManagementScreen(
-                        habitData = habitData,
-                        onAddHabit = {
-                            navController.navigate("edit/-1")
-                        },
-                        onEditHabit = { habit ->
-                            navController.navigate("edit/${habit.id}")
-                        },
-                        onToggleEnabled = { habit, newEnabled ->
-                            val habitType = when (habit) {
-                                is Habit.BinaryHabit -> HabitType.BINARY
-                                is Habit.TimeBasedHabit -> HabitType.TIME_BASED
-                                is Habit.MultipleHabit -> HabitType.MULTIPLE
-                            }
-                            val completionsPerDay = if (habit is Habit.MultipleHabit) habit.completionsPerDay else 3
-                            val targetTime = if (habit is Habit.TimeBasedHabit) habit.targetTime else "12:00"
-
-                            updateHabit(
-                                context,
-                                LocalDate.now(),
-                                habit.id,
-                                habit.name,
-                                habit.abbreviation,
-                                habitType,
-                                completionsPerDay,
-                                targetTime,
-                                newEnabled
+                    LaunchedEffect(Unit) {
+                        if (wasFromTracker) {
+                            // Animate in from right
+                            val screenWidth = with(density) { 300.dp.toPx() }
+                            offsetX.snapTo(screenWidth)
+                            offsetX.animateTo(
+                                targetValue = 0f,
+                                animationSpec = tween(durationMillis = 300)
                             )
-
-                            // Reload the data to refresh the UI
-                            habitData = loadHabitData(context, LocalDate.now())
-                        },
-                        onNavigateToSettings = {
-                            navController.navigate("settings")
-                        },
-                        onReorderHabits = { fromIndex, toIndex ->
-                            habitData = reorderHabits(context, LocalDate.now(), fromIndex, toIndex)
+                        } else {
+                            // No animation, just ensure we're at position 0
+                            offsetX.snapTo(0f)
                         }
-                    )
+                        previousRoute = "manage"
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                    ) {
+                        var habitData by remember { mutableStateOf(loadHabitData(context, LocalDate.now())) }
+
+                        HabitManagementScreen(
+                            habitData = habitData,
+                            onAddHabit = {
+                                navController.navigate("edit/-1")
+                            },
+                            onEditHabit = { habit ->
+                                navController.navigate("edit/${habit.id}")
+                            },
+                            onToggleEnabled = { habit, newEnabled ->
+                                val habitType = when (habit) {
+                                    is Habit.BinaryHabit -> HabitType.BINARY
+                                    is Habit.TimeBasedHabit -> HabitType.TIME_BASED
+                                    is Habit.MultipleHabit -> HabitType.MULTIPLE
+                                }
+                                val completionsPerDay = if (habit is Habit.MultipleHabit) habit.completionsPerDay else 3
+                                val targetTime = if (habit is Habit.TimeBasedHabit) habit.targetTime else "12:00"
+
+                                updateHabit(
+                                    context,
+                                    LocalDate.now(),
+                                    habit.id,
+                                    habit.name,
+                                    habit.abbreviation,
+                                    habitType,
+                                    completionsPerDay,
+                                    targetTime,
+                                    newEnabled
+                                )
+
+                                // Reload the data to refresh the UI
+                                habitData = loadHabitData(context, LocalDate.now())
+                            },
+                            onNavigateToSettings = {
+                                navController.navigate("settings")
+                            },
+                            onReorderHabits = { fromIndex, toIndex ->
+                                habitData = reorderHabits(context, LocalDate.now(), fromIndex, toIndex)
+                            }
+                        )
+                    }
                 }
 
                 composable("edit/{habitId}") { backStackEntry ->
